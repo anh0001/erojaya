@@ -1,0 +1,5 @@
+<launch>
+        <node name="capture" pkg="settings" type="capture" output="screen"/>
+        <node name="kepala_back" pkg="settings" type="kepala_back"/>
+</launch>
+

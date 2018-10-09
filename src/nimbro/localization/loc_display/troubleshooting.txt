@@ -1,0 +1,2 @@
+field.material could not be loaded correctly. No color is applied to the field.
+We found that the format of rgb color in the field.material file have to be separated by comma to indicate decimal, instead of dot.

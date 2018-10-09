@@ -1,0 +1,4 @@
+<launch>
+	<rosparam command="load" file="$(find settings)/camera_setting.yaml" />
+	<node name="camera_c920" pkg="settings" type="camera_c920" output="screen"/>
+</launch>

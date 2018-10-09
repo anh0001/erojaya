@@ -1,0 +1,27 @@
+c920: {
+c_index: 0,
+focus_auto: 0,
+focus_absolute: 0,
+white_balance_temperature_auto: 0,
+white_balance_temperature: 3600,
+gain: 128,
+sharpness: 0,
+backlight_compensation: 0,
+exposure_auto: 1,
+exposure_absolute: 250,
+exposure_auto_priority: 0,
+}
+
+c930: {
+index: 1,
+focus_auto: 0,
+focus_absoute: 150,
+white_balance_temperature_auto: 0,
+white_balance_temperature: 3600,
+gain: 128,
+sharpness: 0,
+backlight_compensation: 0,
+exposure_auto: 1,
+exposure_absolute: 250,
+exposure_auto_priority: 0,
+}

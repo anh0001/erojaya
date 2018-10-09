@@ -1,0 +1,43 @@
+<launch>
+	<param name="robot_description" command="cat $(find eros_model)/robots/eros.xml" />
+
+	<param name="/field_type" value="bonn" />
+	<param name="use_gui" value="true" />
+	<param name="debug_mode" value="true"/>
+	<rosparam command="load" file="/home/eros/param/intelligent_parameters.yaml" />
+	<include file ="$(find launch)/config/server.launch" />
+
+	<node name="robotcontrol" pkg="robotcontrol" type="robotcontrol" required="true">
+<rosparam>
+hw_interface: "robotcontrol::DummyInterface"
+</rosparam>
+	</node>
+
+	<!--
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen" required="true">
+		<param name="use_gui" value="false" />
+	</node>
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" required="true"/>
+	<node name="state_publisher" pkg="state_publisher" type="state_publisher" output="screen" required="true"/>
+	-->
+
+
+	<node pkg="nodelet" type="nodelet" name="vision"  args="manager" respawn="true"/>
+
+	<node pkg="nodelet" type="nodelet" name="cam" args="load CameraV4L2 vision">
+		<param name="device" value="/dev/video0" />
+		<param name="width" value="424" />
+		<param name="height" value="240" />
+		<param name="pixel_format" value="yuyv" />
+		<param name="configFile" value="$(find camera_v4l2)/launch/cam_settings.yaml" />
+		<rosparam command="load" file="$(find camera_v4l2)/launch/cam_params.yaml" />
+  	</node>
+
+	<node pkg="nodelet" type="nodelet" name="soccer_vision_stream" args="load SoccerVision vision"/>
+
+	<node pkg="soccer_vision" type="soccercv_gui" name="soccer_gui" respawn="true"/>
+	<node name="intelligent" pkg="eros" type="intelligent" output="screen"/>
+	<node name="serialcom" pkg="eros" type="serialcom"/>
+	<node name="referee" pkg="eros" type="referee"/>
+	<node name="clientrec" pkg="eros" type="clientrec"/>
+</launch>

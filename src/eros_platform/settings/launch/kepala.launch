@@ -1,0 +1,4 @@
+<launch>
+	<node name="kepala_front" pkg="settings" type="kepala_front" output="screen"/>
+	<node name="kepala_back" pkg="settings" type="kepala_back"/>
+</launch>

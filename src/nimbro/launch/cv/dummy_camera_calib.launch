@@ -1,0 +1,7 @@
+<launch>
+	<include file="$(find launch)/config/config_server.launch" if="true" />
+
+	<node pkg="vision_module" name="camera_calibration_node" type="camera_calibration_node" output="screen" args="dummy">
+		<param name="config_server/wait_duration" value="2" />
+	</node>
+</launch>
