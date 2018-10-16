@@ -1,5 +1,0 @@
-Strange error caused by different version of Qt.
-ROS Kinetic requires minimum version of QT 5.3
-while CMakelist.txt uses QT version 4.
-
-We have modified the CMakelist.txt to utilize QT version 5.

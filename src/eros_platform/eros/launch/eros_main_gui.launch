@@ -39,6 +39,5 @@ hw_interface: "robotcontrol::DummyInterface"
 	<node name="intelligent" pkg="eros" type="intelligent" output="screen"/>
 	<node name="serialcom" pkg="eros" type="serialcom"/>
 	<node name="referee" pkg="eros" type="referee"/>
-	<node name="refsend" pkg="eros" type="refsend"/>
 	<node name="clientrec" pkg="eros" type="clientrec"/>
 </launch>

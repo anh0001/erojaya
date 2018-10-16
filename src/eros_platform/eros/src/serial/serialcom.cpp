@@ -121,7 +121,7 @@ void parsing(){
 	OdoM=serialIn[6];								//OdoM
 	if(OdoM==19) {OdoX=(serialIn[2]-128)*2;}					//Flag Odometry Kaki	
 	else {OdoX=(serialIn[2]-128)*XParam;}						//OdoX
-	OdoZ=(serialIn[3]-128)*ZParam;							//OdoZ
+	OdoZ=(serialIn[3]-128)*ZParam/2;							//OdoZ
 	OdoH=((-1)*serialIn[4])+serialIn[5];						//OdoH
 	data[1]=OdoH; //Heading sementara
 	//printf("FJ[%2d]",data[0]);
@@ -161,7 +161,6 @@ void odometry()
 
 	if((langkahkaki == 1 || langkahkaki == 2) && OdoM!= 10){
 		theta = OdoH;
-		if(OdoX>70)OdoX=70;
 		ypos = OdoX * cosd(theta) - OdoZ * sind(theta);
 		xpos = OdoX * sind(theta) + OdoZ * cosd(theta);
 
@@ -172,7 +171,7 @@ void odometry()
 		}
 		//printf("masuk");
 		//printf("Langkahodo = %d\n",FlagOdo);
-		//fprintf(stderr,"OdoX = %d\t OdoZ = %d\t OdoH = %d\n",OdoX,OdoZ,OdoH);
+		//printf("OdoX = %f\t OdoZ = %f\t OdoH = %f\n",OdoX,OdoZ,OdoH);
 	}
 
 	last_FlagOdo =  FlagOdo;
@@ -286,7 +285,7 @@ int main(int argc, char **argv){
 		}
 		IntelligentPublish();
 		serial_it.publish(dta_serial_it);
-    	//ROS_INFO("Publishing to Intel.. [%d][%d][%d][%d]",data[0],data[1],data[2],data[3]);
+    	ROS_INFO("Publishing to Intel.. [%d][%d][%d][%d]",data[0],data[1],data[2],data[3]);
 		rate.sleep();
 		ros::spinOnce();
 	}

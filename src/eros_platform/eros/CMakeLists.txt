@@ -13,6 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   roslaunch
+  vision_module
+  head_control
+  gait_msgs
 )
 
 roslaunch_add_file_check(launch USE_TEST_DEPENDENCIES)
@@ -219,9 +222,9 @@ add_executable(serialcom src/serial/serialcom.cpp)
 target_link_libraries(serialcom ${catkin_LIBRARIES})
 add_dependencies(serialcom eros_generate_messages_cpp)
 
-add_executable(vision src/vision/vision.cpp)
-target_link_libraries(vision -L/usr/local/lib -lopencv_calib3d -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_ml -lopencv_objdetect -lopencv_photo -lopencv_shape -lopencv_stitching -lopencv_superres -lopencv_video -lopencv_videoio -lopencv_videostab -lopencv_aruco -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_datasets -lopencv_dnn -lopencv_dpm -lopencv_face -lopencv_fuzzy -lopencv_hdf -lopencv_line_descriptor -lopencv_optflow -lopencv_plot -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_stereo -lopencv_structured_light -lopencv_surface_matching -lopencv_text -lopencv_tracking -lopencv_xfeatures2d -lopencv_ximgproc -lopencv_xobjdetect -lopencv_xphoto ${catkin_LIBRARIES})
-add_dependencies(vision eros_generate_messages_cpp)
+#add_executable(vision src/vision/vision.cpp)
+#target_link_libraries(vision -L/usr/local/lib -lopencv_calib3d -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_ml -lopencv_objdetect -lopencv_photo -lopencv_shape -lopencv_stitching -lopencv_superres -lopencv_video -lopencv_videoio -lopencv_videostab -lopencv_aruco -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_datasets -lopencv_dnn -lopencv_dpm -lopencv_face -lopencv_fuzzy -lopencv_hdf -lopencv_line_descriptor -lopencv_optflow -lopencv_plot -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_stereo -lopencv_structured_light -lopencv_surface_matching -lopencv_text -lopencv_tracking -lopencv_xfeatures2d -lopencv_ximgproc -lopencv_xobjdetect -lopencv_xphoto ${catkin_LIBRARIES})
+#add_dependencies(vision eros_generate_messages_cpp)
 
 add_executable(referee src/referee/refereeBox.cpp src/referee/PracticalSocket.cpp src/referee/PracticalSocket.h)
 target_link_libraries(referee ${catkin_LIBRARIES})
@@ -235,7 +238,7 @@ add_executable(clientrec src/communication/clientrec.cpp)
 target_link_libraries(clientrec ${catkin_LIBRARIES})
 add_dependencies(clientrec eros_generate_messages_cpp)
 
-install(TARGETS intelligent serialcom vision referee refsend clientrec
+install(TARGETS intelligent serialcom referee refsend clientrec
 	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -246,3 +249,7 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   FILES_MATCHING PATTERN "*.launch"
 )
+
+#install(FILES localization.yaml
+#  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+#)

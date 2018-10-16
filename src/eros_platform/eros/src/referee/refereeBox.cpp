@@ -32,8 +32,8 @@
 #include <iostream>
 using namespace std;
 
-#define SRV_IP "172.17.0.10" //KRSBIHUMANOID2018 - UMY
-// #define SRV_IP "192.168.1.153" //EROS@BAIM - JESSNOLIMIT
+#define SRV_IP "172.17.0.10"	//(Sesuai dengan IP laptop Game Controller)		48--> Mas Khilmi
+//#define SRV_IP "192.168.1.153"
 #define SOCK_REC 3838
 
 #define BIRU		0
@@ -127,8 +127,6 @@ int main(int argc, char **argv){
 	n.getParam("team",tim);
 	n.getParam("player",player);
 
-	// tim=7;
-	// player=2;
 	ROS_INFO("TIM: %d | PLAYER: %d",tim,player);
 	int myTim=0, myTask=0, MyColour=0, step=0, gCol=0;
 
@@ -228,9 +226,8 @@ int main(int argc, char **argv){
 				else if(WData->state == STATE_READY){
 					step=0;
 					if(WData->secondaryState==STATE2_PENALTYSHOOT){
-						if(WData->kickOffTeam == myTim && myTim != WData->firstHalf) myTask = 7;
+						if(WData->kickOffTeam == myTim) myTask = 7;
 						else myTask = 8;
-						if(WData->secondaryState==myTim) myTask = 7;
 					}
 					else {
 						if(WData->kickOffTeam == myTim) myTask = 5; 
@@ -240,9 +237,8 @@ int main(int argc, char **argv){
 				else if(WData->state == STATE_SET){
 					step=0;
 					if(WData->secondaryState==STATE2_PENALTYSHOOT){
-						if(WData->kickOffTeam == myTim && myTim != WData->firstHalf) myTask = 7;
+						if(WData->kickOffTeam == myTim) myTask = 7;
 						else myTask = 8;
-						if(WData->secondaryState==myTim) myTask = 7;
 					}
 					else {
 						if(WData->kickOffTeam == myTim) myTask = 9;

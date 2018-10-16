@@ -10,6 +10,52 @@
 #include "eheader.h"
 using namespace std;
 
+void odometri(){
+	if(arahRobot>11) motion=11;
+	else if(arahRobot<11)	motion=12;
+	else
+	{
+		if(dtaYPOS<30) 
+		{ 
+			if(dtaXPOS>19) motion=16;
+			else if(dtaXPOS<-19) motion=15;
+			else 
+			{
+				motion=10;
+				stepK++;
+			}
+		}
+		else motion=20;
+	}
+	fprintf(stderr,"odometri\n");	
+}
+
+void vision_modul(){
+	ydirectpos=1;
+	aktifkansearching();
+	if(arahRobot>11) motion=11;
+	else if(arahRobot<11)	motion=12;
+	else
+	{
+		countertimeout++;
+		if(countertimeout>50)
+		{
+			if(posisiX<-3) 
+			{ 
+				if(dtaXPOS>19) motion=16;
+				else if(dtaXPOS<-19) motion=15;
+				else 
+				{
+					motion=10;
+					stepK++;
+				}
+			}
+			else motion=20;
+		}
+	}
+	fprintf(stderr,"vision_module\n");
+}
+
 void DebugAI(const char* xx){
 	if(debug_mode){
 		fprintf(stderr, "%s\n", xx);
@@ -189,14 +235,17 @@ void GetFieldSampleData(int xpos){
 	motionAct(xBall,yBall,0,0);
 }
 
-void VisionItCallback(const std_msgs::Int32MultiArray::ConstPtr& msg){
-    int i=0;
-    for(std::vector<int>::const_iterator it=msg->data.begin(); it!=msg->data.end(); ++it){
-      dtaFromVision[i]=*it;
-      i++;
-    }
-    dataXB=dtaFromVision[0];
-    dataYB=dtaFromVision[1];
+void VisionItCallback(const vision_module::vision_outputsConstPtr& msg){
+		probball=msg->ball.probability;
+    if(msg->ball.detected==true){
+			dataXB=msg->ball.center_x_im;
+    	dataYB=msg->ball.center_y_im;
+		}else{
+			dataXB=dataYB=0;
+		}
+		posisiX=msg->location.position.x;
+		posisiY=msg->location.position.y;
+	//radius=msg->ball.radius_im;
     //ROS_INFO("I heard Vision: [%d][%d]", dataXB,dataYB);
 }
 
@@ -207,8 +256,7 @@ void RecItCallback(const std_msgs::Int32MultiArray::ConstPtr& msg){
       i++;
     }
 	dtComm = dtaFromRec[0];
-	bufferTendangMax=dtaFromRec[1];
-	//dtflagsama = dtaFromRec[1];
+	dtflagsama = dtaFromRec[1];
 
     //ROS_INFO("I heard Rec: [%d]",dtaFromRec[0]);
 }
@@ -232,11 +280,11 @@ void RecPublish(int dtaSudutBola, int dtaState, int dtaPenalty, int dtaArah, int
 	dtaPublishREC.data.push_back(dtaPenalty);
 	dtaPublishREC.data.push_back(dtaArah);
 	dtaPublishREC.data.push_back(dtaArahKepala);
-	dtaPublishREC.data.push_back(nBall);	
+	dtaPublishREC.data.push_back(nBall);
 	dtaPublishREC.data.push_back(dtaXPOS);
 	dtaPublishREC.data.push_back(dtaYPOS);
 	dtaPublishREC.data.push_back(bufferTendang);
-	dtaPublishREC.data.push_back(mainx);
+	dtaPublishREC.data.push_back(1);
 }
 
 void VisionPublish(int dtaArahKepala, int dtaYKepala, int dtaYSudut, int dtaEField, int dtaEVision){
@@ -256,7 +304,7 @@ void SerialPublish(int param1, int param2, int param3, int param4){
 	dtaPublishSERIAL.data.push_back(param4);
 }
 
-void DebugPublish(int param1, int param2, int param3, int param4, int param5, int param6, int param7, int param8, int param9, int param10){
+void DebugPublish(int param1, int param2, int param3, int param4, int param5, int param6){
 	dtaPublishDEBUG.data.clear();
 	dtaPublishDEBUG.data.push_back(param1);
 	dtaPublishDEBUG.data.push_back(param2);
@@ -264,10 +312,6 @@ void DebugPublish(int param1, int param2, int param3, int param4, int param5, in
 	dtaPublishDEBUG.data.push_back(param4);
 	dtaPublishDEBUG.data.push_back(param5);
 	dtaPublishDEBUG.data.push_back(param6);
-	dtaPublishDEBUG.data.push_back(param7);
-	dtaPublishDEBUG.data.push_back(param8);
-	dtaPublishDEBUG.data.push_back(param9);
-	dtaPublishDEBUG.data.push_back(param10);
 }
 
 int configure_port(int fd){

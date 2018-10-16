@@ -42,8 +42,8 @@ using namespace std;
 //Power Status//
 #define OnOff   5050
 
-//#define SRV_IP "192.168.255.255" //EROS@BAIM JESSNOLIMIT
-#define SRV_IP "172.17.255.255" //KRSBSIHUMANOID2018 - UMY
+#define SRV_IP "172.17.255.255" //from CORE_iBOT NETWORK
+//#define SRV_IP "192.168.255.255"
 #define BUFLEN 512
 #define NPACK 10
 
@@ -56,8 +56,7 @@ using namespace std;
 
 #define MAX 60000
 #define jmlEROS 6
-// #define KEEPER 3 //id player keeper untuk diskup komunikasi
-//#define KEEPER 5
+#define KEEPER 5 //id player keeper untuk diskup komunikasi
 
 #define MAX_ROS_SUBSCRIBE 	10
 #define ROS_PUBLISH_NODE	"rec_it"
@@ -67,7 +66,7 @@ using namespace std;
 int ping;
 int dtaSubscribe[MAX_ROS_SUBSCRIBE];
 std_msgs::Int32MultiArray dtaPublish;
-int KEEPER;
+
 
 //Global Variable Declaration
 int datacom;
@@ -113,7 +112,6 @@ int broadcastEnable=1;
 int counterSerang;
 int counterTahan;
 int bandingSerang,counterSama;
-int bufferTendangMax;
 //int counterserver;
 //int counterbanding;
 
@@ -141,6 +139,7 @@ void IntelCallback(const std_msgs::Int32MultiArray::ConstPtr& msg){
 	YPOS[player]=dtaSubscribe[7];
 	initialPOS[player]=dtaSubscribe[8];
 	mainx[player]=dtaSubscribe[9];
+	
 	//ROS_INFO("I heard: [%d][%d][%d][%d][%d]", dtaSubscribe[0],dtaSubscribe[1],dtaSubscribe[2],dtaSubscribe[3],dtaSubscribe[4]);
   	ping=10000;
 }
@@ -182,10 +181,9 @@ void *terimaIPC1(void *arg){
 			sudutbolaEROS[1] = eros1.dataYK;
 			dataarah[1] = eros1.dataarah;
 			dataarahkepala[1] = eros1.dataarahkepala;
-			ball[1]=eros1.ball;
-			initialPOS[1]=eros1.initialPOS;
 			flagonoff[1] = 1;
 			mainx[1] = eros1.mainx;
+			ball[1] = eros1.ball;
 			ROS_INFO("Receiving UDP1..[%d][%d][%d][%d][%d][%d]",eros1.dCom,eros1.dataYK,eros1.datajob,eros1.dataarah,eros1.dataarahkepala,eros1.mainx);
 			d1count++;
 		}
@@ -228,10 +226,9 @@ void *terimaIPC2(void *arg){
 			sudutbolaEROS[2] = eros2.dataYK;
 			dataarah[2] = eros2.dataarah;
 			dataarahkepala[2] = eros2.dataarahkepala;
-			ball[2]=eros2.ball;
-			initialPOS[2]=eros2.initialPOS;
 			flagonoff[2] = 1;
 			mainx[2] = eros2.mainx;
+			ball[2] = eros2.ball;
 			ROS_INFO("Receiving UDP2..[%d][%d][%d][%d][%d][%d]",eros2.dCom,eros2.dataYK,eros2.datajob,eros2.dataarah,eros2.dataarahkepala,eros2.mainx);
 			d2count++;
 		}
@@ -272,10 +269,9 @@ void *terimaIPC3(void *arg){
 			sudutbolaEROS[3] = eros3.dataYK;
 			dataarah[3] = eros3.dataarah;
 			dataarahkepala[3] = eros3.dataarahkepala;
-			ball[3]=eros3.ball;
-			initialPOS[3]=eros3.initialPOS;
 			flagonoff[3] = 1;
 			mainx[3] = eros3.mainx;
+			ball[3] = eros3.ball;
 			ROS_INFO("Receiving UDP3..[%d][%d][%d][%d][%d][%d]",eros3.dCom,eros3.dataYK,eros3.datajob,eros3.dataarah,eros3.dataarahkepala,eros3.mainx);
 			d3count++;
 		}
@@ -316,10 +312,9 @@ void *terimaIPC4(void *arg){
 			sudutbolaEROS[4] = eros4.dataYK;
 			dataarah[4] = eros4.dataarah;
 			dataarahkepala[4] = eros4.dataarahkepala;
-			ball[4]=eros4.ball;
-			initialPOS[4]=eros4.initialPOS;
 			flagonoff[4] = 1;
 			mainx[4] = eros4.mainx;
+			ball[4] = eros4.ball;
 			ROS_INFO("Receiving UDP4..[%d][%d][%d][%d][%d][%d]",eros4.dCom,eros4.dataYK,eros4.datajob,eros4.dataarah,eros4.dataarahkepala,eros4.mainx);
 			d4count++;
 		}
@@ -361,10 +356,9 @@ void *terimaIPC5(void *arg){
 			sudutbolaEROS[5] = eros5.dataYK;
 			dataarah[5] = eros5.dataarah;
 			dataarahkepala[5] = eros5.dataarahkepala;
-			ball[5]=eros5.ball;
-			initialPOS[5]=eros5.initialPOS;
 			flagonoff[5] = 1;
 			mainx[5] = eros5.mainx;
+			ball[5] = eros5.ball;
 			ROS_INFO("Receiving UDP5..[%d][%d][%d][%d][%d][%d]",eros5.dCom,eros5.dataYK,eros5.datajob,eros5.dataarah,eros5.dataarahkepala,eros5.mainx);
 			d5count++;
 		}
@@ -475,6 +469,8 @@ int prosesbandingkan(){
 
 		//Banding Teman Kena Penalty atau Tidak Komunikasi
 		if(datapin[i]==1 || flagonoff[i]==0 || i==KEEPER || mainx[i]==0 || stateEROS[i]<=0){
+		//semua Teman Kena Penalty atau Tidak Komunikasi
+		//if(datapin[i]==1 || flagonoff[i]==0 || i!=3 || mainx[i]==0 || stateEROS[i]<=0){
 			continue;
 		}
 
@@ -485,18 +481,16 @@ int prosesbandingkan(){
 		}
 
 		//Cari sudut bola terkecil
-		if(sudutbolaEROS[i]<=EROSYKMin && stateEROS[i]>1){
-			if(sudutbolaEROS[i]<10)continue;
+		if(sudutbolaEROS[i]<=EROSYKMin){
 			EROSYKMin=sudutbolaEROS[i];
 			robotYKMin=i;
 		}
 	}
 
-	bufferTendangMax=initialPOS[robotStateMax];
 	if(flagpenalty){
 		dbuff=9;
 	}else{
-		if(stateEROS[player]>EROSMax || stateEROS[player]==-1){
+		if(stateEROS[player]>EROSMax || stateEROS[player]==-9){
 			dbuff=1;
 		}else if(stateEROS[player]==EROSMax){
 			if(EROSMax<2){
@@ -546,8 +540,7 @@ int prosesbandingkan(){
 	dCom[player]=bandingSerang;
 	dtaPublish.data.clear();
 	dtaPublish.data.push_back(datacom);
-	dtaPublish.data.push_back(bufferTendangMax);
-	//dtaPublish.data.push_back(flagsama);
+	dtaPublish.data.push_back(flagsama);
 	//fprintf(stderr, "cS[%d]cT[%d]mX[%d]\n",counterSerang,counterTahan,mainx[player]);
 }
 
@@ -600,13 +593,8 @@ int main(int argc, char **argv){
 	printf("Bismillah\n");
 	//expData(); //Read data from file profile.al
 
-	// tim=7;
-	// player=2;
-	bool with_keeper;
 	n.getParam("team",tim);
 	n.getParam("player",player);
-	n.getParam("with_keeper",with_keeper);
-	if(with_keeper)KEEPER=5;else KEEPER=3;
 	bandingSerang=1;
 
 	if(player!=1)pthread_create(&t1,NULL,terimaIPC1,NULL);
@@ -644,3 +632,4 @@ int main(int argc, char **argv){
 	}
 	return 0;
 }
+

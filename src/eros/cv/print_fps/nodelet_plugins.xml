@@ -1,8 +1,0 @@
-<library path="lib/libprint_fps">
-	<class type="PrintFPS" base_class_type="nodelet::Nodelet">
-		<description>
-			Print frames per second on a sensor_msgs::Image
-			topic
-		</description>
-	</class>
-</library>

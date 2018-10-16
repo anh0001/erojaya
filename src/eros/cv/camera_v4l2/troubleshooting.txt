@@ -1,8 +1,0 @@
-This package does not work in Ubuntu 16.04 Kinetic
-
-[FATAL] [1513332378.110531721]: ASSERTION FAILED
-	file = /home/anhar/codes/eros_ws_test/src/eros/cv/camera_v4l2/camera_v4l2.cpp
-	line = 278
-	cond = parameter_param.getType() == XmlRpc::XmlRpcValue::TypeArray
-
-SOLUTION: Provide parameter server using ROSPARAM in launch file.

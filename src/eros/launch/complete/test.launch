@@ -1,4 +1,0 @@
-<launch>
-	<include file="$(find launch)/config/server.launch" />
-	<include file="$(find launch)/cv/cv.launch" />
-</launch>

@@ -42,8 +42,8 @@ using namespace std;
 
 // Define Robocup Game Control Data 2017
 //#define SRV_IP "192.168.1.255"
-#define SRV_IP "172.17.0.10" //KRSBIHUMANOID2018 - UMY
-//#define SRV_IP "192.168.1.153" //EROS@BAIM - JESSNOLIMIT
+#define SRV_IP "172.17.0.10" //from CORE_iBOT Networks (Sesuai dengan IP laptop Game Controller)		48--> Mas Khilmi
+//#define SRV_IP "192.168.1.153"
 #define PORT_REC 	3838
 #define PORT_SEND 	3838
 
@@ -147,14 +147,12 @@ void kirim(){
 
 int main(int argc, char **argv){
 
-	ros::init(argc, argv, "refsend");
+	ros::init(argc, argv, "referee");
 	ros::NodeHandle n;
 	
 	n.getParam("team",tim);
 	n.getParam("player",player);
 
-	// tim=7;
-	// player=2;
 	ROS_INFO("TIM: %d | PLAYER: %d",tim,player);
 
 	player--;

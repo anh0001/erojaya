@@ -76,34 +76,36 @@ void captureImage(){
 	if(headon==1){
 		if(xdirect==0 && ydirect==0){ //awal
 			dtaYHead=sdtblamn;
-			dtaXHead=defaultXS-1024;
+			dtaXHead=sdtxmin;
 			xdirect=1;
+			ydirect=1;
 		}else if(xdirect==1){ //nganan
-			dtaXHead+=10;
-			if(dtaXHead>defaultXS+1024){
-				ydirect=1;
+			dtaXHead+=3;
+			if(dtaXHead>sdtxmax){
 				xdirect=2;
 			}
+			
 		}else if(xdirect==2){ //ngiri
-			dtaXHead-=10;
-			if(dtaXHead<defaultXS-1024){
-				ydirect=1;
+			dtaXHead-=3;
+			if(dtaXHead<sdtxmin){
 				xdirect=1;
 			}
 		}
 
 		if(ydirect==1){
-			if(dtaYHead+200>sdtblamx){
-				dtaYHead=sdtblamn;
-			}else{
-				dtaYHead+=200;
+			dtaYHead+=7;
+			if(dtaYHead>sdtblamx){ //ngatas
+				ydirect=2;
 			}
-			ydirect=0;
+		}else if(ydirect==2){
+			dtaYHead-=7;
+			if(dtaYHead<sdtblamn){//ngisor
+				ydirect=1;
+			}
 		}
 		usleep(10000);
 	}
 }
-
 
 int main(int argc, char **argv){
 	//struct timeval t1, t2;  	//Time Lapsed Stamp Variable, uncomment if you want to use this

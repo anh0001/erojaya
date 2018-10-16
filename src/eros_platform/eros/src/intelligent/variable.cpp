@@ -8,18 +8,7 @@
 
 int tim,player;
 int initialPosition;
-int arahInitial;
 float vPos;
-int BUFFERTENDANG_CONST;
-
-//Hitung Bola
-int countlookbola;
-
-//Thread
-int xdirect=0,ydirect=0,ydirectpos=0;
-int sdtxmin=1200,sdtxmax=2900,sdtycenter=40;
-int sdtxmin1,sdtxmax1;
-
 
 /* ============== Data Kalibrasi ============== */
 int Cmps[8],GeserCMPS,PutarCMPS;								// Kalibrasi Kompas
@@ -47,7 +36,7 @@ int penalty;
 int myTask,myTask2; 													// From Referee
 int dtComm, lastDtComm;											// From Server
 int fdGrk;														// SerialComm Arm
-int dtflagsama,catchflagsama;
+int dtflagsama;
 
 /* =============== Data Compass =============== */
 int myGcol;														// Gawang
@@ -57,9 +46,10 @@ int dataIMU, kalibrasiIMU;
 bool hit_arahRobot;
 float HeadingOffset;
 /* ======== Variable Searching Bola =========== */
+float praa,prab,xnew,ynew,praa1,prab1,xnew1,ynew1;
 bool nBall,flagPEX;														// Ada tidak bola
 int sKpl;														// Kecepatan Searching
-int CountLook, CountTrack, DelayCari, CountLost, CountAda, CountDelay, CountUlang,countn,countmundur,count10;		// Counter
+int CountLook, CountTrack, DelayCari, CountLost, CountAda, CountDelay, CountUlang,countn,countmundur,count10,countp,hilang,tracking;		// Counter
 int FlagLook;													// Flag
 int lastErrX, lastErrY, lastXball, lastYball, servoX, servoY;	// Perhitungan
 int GoalXservo;
@@ -80,7 +70,7 @@ int servoXG, GoalXservoG, lastskel;
 
 
 /* ============= Variable Strategi ============ */
-bool flagStrategi, flagKickOff;
+bool flagStrategi;
 int Strategiserang;
 int dtJob, dataTm;												// State
 int countKick, hadapGawang;										// Counter
@@ -88,8 +78,6 @@ int flagserong;													// Flag
 int mode, ModeKickOFF, play;
 int dtComm2;
 int stserang,stkickoff;
-bool flagPuterKO;
-bool firstHit;
 
 /* ============= Variable Serial ============ */
 int ttySC;
@@ -114,34 +102,31 @@ unsigned char pilihstrategi, piliheksekusi, arahtembak, eksekusitembak;
 /* ======================= erostactics.cpp =========================== */
 
 /* ============= Variable Taktik =============== */
-
+int bufferTendang;
 //TaktikNggiring3
 bool flagStopDribble;
 int batasGiringY;
-int takeMotion;
 
 int lostball_arahx;
-int bufferTendang,bufferTendangMax;
+
 //PositionGenerator
 bool flagcounterpos2;
 
 //8 ----
-bool flaginposition;
-int mainx;
+bool flaginposition,mainx;
 
 //TaktikEksekusi
 int kakiTendang;
 
-int serongLost;
 
-int step, laststep,laststep2, nextstep, stepH, stepTB, stepE, stepFD, stepG, stepT,stepK,langkah,stepBuffer;			// Step
+int step, laststep,laststep2, nextstep, stepH, stepTB, stepE, stepFD, stepG, stepT,stepK,langkah,stepBuffer,stepP;			// Step
 int countGawang, hitungtendangkecil, cariGawangOut,countjalan;		// Counter
 int	cariGawang, countDribb, countDribbChange, countTrackG, countLookG;
-int CountSafeBall, countGW, countertimeout,countLihatblg, countLihat,counterTerobos,counterNyaduk;	// Counter
+int CountSafeBall, countGW, countertimeout,countLihatblg, countLihat,counterTerobos;	// Counter
 int flagPutar, flagYG, Objectlock, Kick, cekTdgSkaa, okTdg;			// Flag
 int sdtGWX, sdtkplX, Tiang, lihatGoal, sdtKicking, lastsdtGWX;
 int setArahRobot, arahGWX2, posRobot, posGR, arahGwng, arahdir;
-int SafeBall, posCuri, flagCuri, flagRebut, countRebut, countRest, flagCuri2, arahTerobos, count10kebola, flagNyaduk1, flagNyaduk2;
+int SafeBall, posCuri, flagCuri, flagRebut, countRebut, countRest, flagCuri2, arahTerobos;
 int kaki, sudutTendang, sumsdtKick, sdtKick, skelTdg,kakie, lastKick, araheksekusi;
 int Tbolax, Tbolay;
 bool flagsudahdekat,flagrotasilostball;
@@ -156,7 +141,7 @@ unsigned char sudahlihatGW;
 int lastsuduteksekusi;
 unsigned char disampinggw;
 int sudutTiang[3];
-int lastposrobot,stepP=1;
+int lastposrobot;
 
 int sudahtrackball;
 bool flagaktifkanobs;
@@ -189,16 +174,35 @@ std_msgs::Int32MultiArray dtaPublishREC;
 std_msgs::Int32MultiArray dtaPublishSERIAL;
 std_msgs::Int32MultiArray dtaPublishVISION;
 std_msgs::Int32MultiArray dtaPublishDEBUG;
+std_msgs::Float32 HeadingRad;
+double posisiX,posisiY;
+float probball;
+//std_msgs::Float64 pitchK,yawK;
+
+/// keeper variable
+int speedBall;
+int direktori;
+int serang,serangBall,serangBall1;
+int lastBallFound;
+int counter10;
+int midBall;
+int counterserang;
+int stepping;
+int countTimeKeeping;
+int ErrFrameY, ErrFrameX;
+int stepKeep;
+//int flagjatuh;
+
 
 unsigned char it=0,ready=0,cM=0,ceksum=0,ceksum2;
 unsigned char buff[24],countz=0;
 unsigned char serialIn[10];
 //unsigned char kdata[5];
 int k=0;
-bool flagLocalize,resetOdometry;
+bool flagLocalize,resetOdometry,resetLocallization;
 float getPosition,relativePosition0,relativePosition1,relativePosition2;
 int arahTendang;
-bool debug_mode,diving_mode;
+bool debug_mode;
 char debug_print[500];
 int posDir;
 
