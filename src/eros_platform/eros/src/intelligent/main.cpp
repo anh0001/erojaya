@@ -67,12 +67,9 @@ int main(int argc, char **argv){
 	ros::Publisher  it_rec = n.advertise<std_msgs::Int32MultiArray>("it_rec", 100);
 
 	//vision/vision.cpp
-	//ros::Subscriber vision_it = n.subscribe("vision_it", 100, VisionItCallback);
-	ros::Subscriber vision_it = n.subscribe("vision/outputs", 100, VisionItCallback);
+	ros::Subscriber vision_it = n.subscribe("vision_it", 100, VisionItCallback);
 	ros::Publisher  it_vision = n.advertise<std_msgs::Int32MultiArray>("it_vision", 100);
 
-	ros::Publisher  it_rc = n.advertise<std_msgs::Float32>("robotcontrol/ai/heading", 100);
-	ros::Publisher  it_headcontrol = n.advertise<head_control::LookAtTarget>("/robotcontrol/headcontrol/target", 1);
 	ros::Publisher  it_debug = n.advertise<std_msgs::Int32MultiArray>("it_debug", 100);
 
 	n.getParam("use_gui",use_gui);
@@ -80,6 +77,12 @@ int main(int argc, char **argv){
 
 	n.getParam("debug_mode",debug_mode);
 	ROS_INFO("Debugging Mode: [%d]",debug_mode);
+
+	n.getParam("diving_mode",diving_mode);
+	ROS_INFO("Diving Mode: [%d]",diving_mode);
+
+	n.getParam("bufferTendang_const",BUFFERTENDANG_CONST);
+	ROS_INFO("Konstanta Buffer Tendang: [%d]",BUFFERTENDANG_CONST);
 
 	n.getParam("team",tim);
 	n.getParam("player",player);
@@ -95,7 +98,7 @@ int main(int argc, char **argv){
 	//ROS_INFO("Robot Position:[%d][%d][%d]",setX,setY,setH);
 
 	//Load Parameter YAML ------------------------------------------------
-	head_control::LookAtTargetPtr lookMsg = boost::make_shared<head_control::LookAtTarget>();
+	
 	
 
 
@@ -113,6 +116,9 @@ int main(int argc, char **argv){
 	//KNN_Basic(3,25,377,146,1);
 	flagGetFieldSampleData=false;
 	flagCuri=false;
+	firstHit=false;
+
+	//reset all variable
 	init();
 	while (ros::ok()){
 		//flagLocalize=1;
@@ -158,35 +164,29 @@ int main(int argc, char **argv){
 		//MAIN LOOP ---------------------------------------------------------------------------------------------------------------------
 		
 		arahRobot = cariarahRobot(dtaHeading,0);
-		HeadingRad.data=-1*dtaHeading*R2D;
 		arahLihat = CariArahLihat(SudutBolaX(),0);
-		lookMsg->vec.z=-1*sdtbolax*R2D;
-		lookMsg->vec.y=-1*sdtbolay*R2D;
-		lookMsg->vec.x=0;
-		lookMsg->enabled=true;
-		lookMsg->is_angular_data=true;
-		lookMsg->is_relative=false;
-		lookMsg->pitchEffort=0;
-		lookMsg->yawEffort=0;		
-		//pitchK.data=sdtbolax*R2D;
-		//yawK.data=sdtbolay*R2D;
 		//bermain();
+		strategi_goal_kickoff();
+		// strategi_penalty_WIDE();
 		//lostball();
 		//lostball_bertahan();
 		//lostball_keeping();
 		//strategi_serang_WIDE3();
-		//TaktikEksekusiSamping(2);
+		// strategi_serang_WIDE4();
+		// TaktikEksekusiSamping();
 		//strategi_bertahan_cpp();
 		//strategi_serang_rokh();
-		//strategi_bertahan_cpp(); 
+		//strategi_bertahan_cpp();
 		//strategi_bertahan_off();
 		//PositionGenerator();
-		//aktifkansearching();
+		// ModeKickOff2(); 
+		// aktifkansearching();
 		//TaktikkeBola3(1);
+		// TaktikkeBola4(1);
 		//TaktikLuruskanGW_wide();
 		//arahNggiring=1;
 		//TaktikNggiring3();
-		//TaktikEksekusi4(); 
+		//TaktikEksekusi4();
 		//DEBUG STRATEGY
 		//ROS_INFO("(%d)X(%d)Y(%d)sX(%d)sY(%d)m(%d)xB(%d)yB(%d)aR(%d)><(%d)",nBall,dataXB,dataYB,sdtbolax,sdtbolay,motion,xBall,yBall,arahRobot,cariarahRobot(dtaHeading,0));
 
@@ -194,10 +194,9 @@ int main(int argc, char **argv){
 		//initpos=1;
 		//GetFieldSampleData(1);
 		//-----------------------------------------------------------
-
 		//DEBUG TACTIC
-		//fprintf(stderr,"%d(%d)X(%3d)Y(%3d)sX(%3d)sY(%3d)m(%2d)aR(%2d)aL(%2d)X(%4d)Y(%4d)%d[%d]::%d::%d\n",step,nBall,dataXB,dataYB,sdtbolax,sdtbolay,motion,arahRobot,arahLihat,dtaXPOS,dtaYPOS,batasGiringY,arahTendang,dtaFall,dtflagsama);
-		
+		//fprintf(stderr,"%d(%d)X(%3d)Y(%3d)sX(%3d)sY(%3d)m(%2d)aR(%2d)aL(%2d)X(%4d)Y(%4d)%d[%d]::%d::%d\n",step,nBall,dataXB,dataYB,sdtbolax,sdtbolay,motion,arahRobot,arahLihat,dtaXPOS,dtaYPOS,bufferTendang,arahTendang,dtaFall,refree);
+		// fprintf(stderr, "%d",myTask);
 		//DEBUG I/O
 		//ROS_INFO("(%d)X(%3d)Y(%3d)sX(%2d)sY(%2d)m(%2d)xB(%4d)yB(%4d)aR(%2d)aL(%2d)\n",nBall,dataXB,dataYB,sdtbolax,sdtbolay,motion,xBall,yBall,arahRobot,arahLihat);
 		//ROS_INFO("(%d)aR(%2d)aL(%2d)m(%2d)L(%d)mLS(%d)mLT(%d)dtJob(%d)",nBall,arahRobot,arahLihat,motion,langkah,majuloss,majulost,dtJob);
@@ -205,19 +204,18 @@ int main(int argc, char **argv){
 		
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		xBall=sdtblax;
-		yBall=sdtdefy+200;
-		motionAct(xBall,yBall,0,0);
+		// motionAct(xBall,yBall,0,0);
+		// motion=12;
+		// motionAct(sdtblax,sdtblay,motion,0);
 		if(dtaYPOS==0 && dtaXPOS==0)resetOdometry=false;
 		VisionPublish(yBall,SudutBolaY(),arahLihat,dtJob,enablevision);
 		SerialPublish(resetOdometry,1,0,0);
-		RecPublish(sdtbolay, dtJob, penalty, arahRobot, arahLihat);
-		DebugPublish(motion,arahRobot,arahLihat,nBall,dtJob,refree);
+		RecPublish(sdtbolay, dtJob, penalty, arahRobot, arahLihat, nBall);
+		DebugPublish(motion,arahRobot,arahLihat,nBall,dtJob,dtComm,sdtbolax,sdtbolay,bufferTendang,myTask);
+		//DebugPublish(refree,arahRobot,dtaXPOS,arahTendang,bufferTendang,dtJob);
 		it_serial.publish(dtaPublishSERIAL);
 		it_rec.publish(dtaPublishREC);
 		it_vision.publish(dtaPublishVISION);
-		it_headcontrol.publish(lookMsg);
-		it_rc.publish(HeadingRad);
 		it_debug.publish(dtaPublishDEBUG);
 		ros::spinOnce();
 		//gettimeofday(&t2, NULL);

@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include "math.h"
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -30,21 +31,12 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#include <math.h>
-#define R2D M_PI/180
-#define D2R 180/M_PI
-
 #include <stdlib.h>
 #include <vector>
 #include "ros/ros.h"
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
 #include "std_msgs/Int32MultiArray.h"
-#include "std_msgs/Float32.h"
-#include "std_msgs/Float64.h"
-#include <head_control/LookAtTarget.h>
-
-#include <vision_module/vision_outputs.h>
 /* =============IPC================ */
 
 // //vision
@@ -145,21 +137,21 @@
 #define KIY
 
 //PID Without GUI###################################
-#define TKPX1 70//80//15//20//30//15//7
+#define TKPX1 60//70
 #define TKDX1 15//17//10//13//20//2
-#define TKIX1 80//80//1000//100
+#define TKIX1 70//80
 
 #define TKPX2 90//80//15//20//30//15//7
 #define TKDX2 10//17//10//13//20//2
 #define TKIX2 150//80//1000//100
 
-#define TKPY 15//15//20//12
+#define TKPY 20//18//15//20//12
 #define TKDY 27//23//30//20
 #define TKIY
 //##################################################
 
 //PID Use GUI#######################################
-#define TKPX1_GUI 80//80//15//20//30//15//7
+#define TKPX1_GUI 70//80//80//15//20//30//15//7
 #define TKDX1_GUI 17//17//10//13//20//2
 #define TKIX1_GUI 120//80//1000//100
 
@@ -176,7 +168,7 @@
 #define motioncekgw 0
 
 #define KANAN 1
-#define KIRI 0
+#define KIRI 2
 
 #define ipcimu 5056
 #define round(a)(int)(a+0.5)
@@ -221,6 +213,17 @@ struct DataCMPS{
 };
 
 /********************* Variable *************************/
+//hitung bola
+extern int countlookbola;
+
+//Konstanta
+extern int BUFFERTENDANG_CONST;
+
+
+//Thread
+extern int xdirect,ydirect,ydirectpos;
+extern int sdtxmin,sdtxmax,sdtycenter;
+extern int sdtxmin1,sdtxmax1;
 
 // Publish & Subscribe Variable
 extern int dtaFromField[MAX_DATA_FROM_FIELD];
@@ -251,7 +254,7 @@ extern bool use_gui;
 extern int myTask,myTask2; 													// From Referee
 extern int dtComm, lastDtComm; 										// From Server
 extern int fdGrk,ttySC;												// SerialComm Arm
-extern int dtflagsama;											
+extern int dtflagsama,catchflagsama;											
 
 /* =============== Data Compass =============== */
 extern int myGcol;													// Gawang
@@ -286,12 +289,14 @@ extern int jrkbolay;													// Jarak bola
 extern int servoXG, GoalXservoG, lastskel;
 
 /* ============= Variable Strategi ============ */
-extern bool flagStrategi;
+extern bool flagStrategi, flagKickOff;
 extern int Strategiserang;
 extern int dtJob, dataTm;												// State
 extern int countKick, hadapGawang;										// Counter
 extern int flagserong;													// Flag
 extern int mode, ModeKickOFF, play;
+extern int serongLost;
+extern bool firstHit;
 
 /* ============= Variable Serial ============ */
 extern int flagjatuh, dataCOMPAS,langkahodo, last_langkahodo, langkahkaki;
@@ -309,6 +314,8 @@ extern int stepBuffer;
 //TaktikNggiring
 extern bool flagStopDribble;
 extern int batasGiringY;
+extern int bufferTendang,bufferTendangMax;
+extern int takeMotion;
 
 //PositionGenerator
 extern bool flagcounterpos2;
@@ -316,7 +323,8 @@ extern bool flagcounterpos2;
 extern int lostball_arahx;
 
 //8 -----
-extern bool flaginposition,mainx;
+extern bool flaginposition;
+extern int mainx;
 
 //TaktikEksekusi
 extern int kakiTendang;
@@ -324,11 +332,11 @@ extern int kakiTendang;
 extern int step, laststep,laststep2, nextstep, stepH, stepTB, stepE, stepFD, stepG, stepT,stepK,langkah;			// Step
 extern int countGawang, hitungtendangkecil, cariGawangOut,countjalan;	// Counter
 extern int cariGawang, countDribb, countDribbChange, countTrackG, countLookG;
-extern int CountSafeBall, countGW, countertimeout,countLihatblg,countLihat,counterTerobos;// Counter
+extern int CountSafeBall, countGW, countertimeout,countLihatblg,countLihat,counterTerobos,counterNyaduk;// Counter
 extern int flagPutar, flagYG, Objectlock, Kick, cekTdgSkaa, okTdg;		// Flag
 extern int sdtGWX, sdtkplX, Tiang, lihatGoal, sdtKicking, lastsdtGWX;
 extern int setArahRobot, arahGWX2, posRobot, posGR, arahGwng, arahdir;
-extern int SafeBall, posCuri, flagCuri, flagRebut, countRebut, countRest, flagCuri2,arahTerobos;
+extern int SafeBall, posCuri, flagCuri, flagRebut, countRebut, countRest, flagCuri2,arahTerobos, count10kebola, flagNyaduk1, flagNyaduk2;
 extern int kaki, sudutTendang, sumsdtKick, sdtKick, skelTdg, kakie,lastKick, araheksekusi;
 extern int Tbolax, Tbolay;
 extern int simpanposisiGW, simpanposisiGW2, sudutxTiang, sudutxTiang2, suduteksekusi, simpansuduteksekusi;
@@ -362,7 +370,7 @@ extern int KillProg;
 extern int xWaitBall, yWaitBall;
 extern int dataIMU, kalibrasiIMU;
 extern unsigned char pilihstrategi, piliheksekusi;
-
+extern bool flagPuterKO;
 extern int datakompc, batastrackball;
 extern int kpx,kix,kdx;
 extern int dtComm2;
@@ -377,9 +385,10 @@ extern int k;
 extern unsigned char buff[24],countz;
 extern bool flagLocalize,resetOdometry;
 extern int initialPosition;
+extern int arahInitial;
 extern float getPosition,relativePosition0,relativePosition1,relativePosition2,vPos;
 extern int arahTendang;
-extern bool debug_mode;
+extern bool debug_mode,diving_mode;
 extern char debug_print[500];
 extern int penalty;
 
@@ -394,16 +403,15 @@ extern std_msgs::Int32MultiArray dtaPublishSERIAL;
 extern std_msgs::Int32MultiArray dtaPublishREC;
 extern std_msgs::Int32MultiArray dtaPublishVISION;
 extern std_msgs::Int32MultiArray dtaPublishDEBUG;
-extern std_msgs::Float32 HeadingRad;
-//extern head_control::LookAtTargetPtr lookMsg = boost::make_shared<head_control::LookAtTarget>();
+
 void SerialItCallback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void VisionLocalCallback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void RecItCallback(const std_msgs::Int32MultiArray::ConstPtr& msg);
-void VisionItCallback(const vision_module::vision_outputsConstPtr& msg);
+void VisionItCallback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void RefereeItCallback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void SerialPublish(int param1, int param2, int param3, int param4);
-void DebugPublish(int param1, int param2, int param3, int param4, int param5, int param6);
-void RecPublish(int dtaSudutBola, int dtaState, int dtaPenalty, int dtaArah, int dtaArahKepala);
+void DebugPublish(int param1, int param2, int param3, int param4, int param5, int param6, int param7, int param8, int param9, int param10);
+void RecPublish(int dtaSudutBola, int dtaState, int dtaPenalty, int dtaArah, int dtaArahKepala, bool nBall);
 void VisionPublish(int dtaArahKepala, int dtaYKepala, int dtaYSudut, int dtaEField, int dtaEVision);
 
 /* ====================== Import Export ============================== */
@@ -466,7 +474,7 @@ extern bool flagGetFieldSampleData;
 void GetFieldSampleData(int xpos);
 
 /* ======================= tactics.cpp =========================== */
-
+void bufferTendang_Generator();
 //KickOff----------------------------------------------------------------
 void TaktikTentukanArahKickOff();
 void TaktikLuruskanKickOff(int sudutputar);
@@ -495,8 +503,9 @@ void TaktikkeBola_keeping();
 void TaktikEksekusi_keeping();
 void TaktikBacktoPos_keeping();
 
-
+void init_positioning();
 void Initialize();
+void InitializePen();
 void lostball();
 void lostball_bertahan();
 void TaktikkeBola3(int arahhadap);
@@ -505,6 +514,7 @@ void TaktikBertahan_off();
 void PositionGenerator();
 void TaktikNggiring3();
 void TaktikEksekusi4();
+void TaktikEksekusi5();
 void TaktikEksekusiSamping();
 void TaktikLuruskanGW_wide();
 void TaktikPEksekusi();
@@ -560,6 +570,7 @@ void TaktikcekGw2();
 void TaktikcekGW_wide();
 void TaktikTunggubola();
 void TaktikLuruskanGW(int sudutputar);
+void TaktikLuruskanGW_wide_rokh();
 void lari(int mode);
 
 void lostball_keeping();
@@ -598,7 +609,9 @@ void strategi_keeping1();
 void bermain();
 void playing();
 void init();
+void kanankiri();
 void ModeKickOff2();
+void ModeDefend2();
 
 void Modekickoff();
 int Tasking();
@@ -616,6 +629,11 @@ int positioningdefense();
 double cosd(double x);
 double sind(double x);
 int abs(int x);
+
+/*========================strategi penalty=======================*/
+void strategi_penalty_WIDE();
+void strategi_goal_kickoff();
+void Goal_Teknik();
 
 /* ======================= motion.cpp =========================== */
 int GerakJalanKompas(int arahRobots, int arahR,int FoRev, int SudutGWX);

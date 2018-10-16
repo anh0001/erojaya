@@ -1,1 +1,0 @@
-[2018-02-15@anhar] The camera calibration cCFile.yml file is generated but the distCoeffs matrix has rows 14. The solution is to modify the file and delete the last two distCoeffs numbers and change the rows to 12. 

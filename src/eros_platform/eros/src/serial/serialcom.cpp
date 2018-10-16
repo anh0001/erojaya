@@ -161,6 +161,7 @@ void odometry()
 
 	if((langkahkaki == 1 || langkahkaki == 2) && OdoM!= 10){
 		theta = OdoH;
+		if(OdoX>70)OdoX=70;
 		ypos = OdoX * cosd(theta) - OdoZ * sind(theta);
 		xpos = OdoX * sind(theta) + OdoZ * cosd(theta);
 
@@ -171,7 +172,7 @@ void odometry()
 		}
 		//printf("masuk");
 		//printf("Langkahodo = %d\n",FlagOdo);
-		//printf("OdoX = %f\t OdoZ = %f\t OdoH = %f\n",OdoX,OdoZ,OdoH);
+		//fprintf(stderr,"OdoX = %d\t OdoZ = %d\t OdoH = %d\n",OdoX,OdoZ,OdoH);
 	}
 
 	last_FlagOdo =  FlagOdo;
@@ -285,7 +286,7 @@ int main(int argc, char **argv){
 		}
 		IntelligentPublish();
 		serial_it.publish(dta_serial_it);
-    	ROS_INFO("Publishing to Intel.. [%d][%d][%d][%d]",data[0],data[1],data[2],data[3]);
+    	//ROS_INFO("Publishing to Intel.. [%d][%d][%d][%d]",data[0],data[1],data[2],data[3]);
 		rate.sleep();
 		ros::spinOnce();
 	}

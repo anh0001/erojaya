@@ -7,7 +7,9 @@
 //============================================================================
 
 #include "eheader.h"
-
+#include <math.h>
+#define R2D M_PI/180
+#define D2R 180/M_PI
 
 double cosd(double x)
 {
@@ -21,19 +23,22 @@ double sind(double x)
 
 // Striker 1st ##################################
 void Initialize(){
-	if (dtaFall==2){
-		//flagGetPosition=0; //reset flag pada taktik PositionGenerator
-		step=1; //Lostball
-	}else
-	if(dtaFall>=40 && dtaFall<=49){
-		step=-1;
-		mainx=KANAN;
-	}else 
-	if(dtaFall>=50 && dtaFall<=59){
-		step=-1;
-		mainx=KIRI;
+	resetOdometry=true;
+	if(dtaXPOS==0 && dtaYPOS==0){
+		if (dtaFall==2){
+			//flagGetPosition=0; //reset flag pada taktik PositionGenerator
+			step=1; //Lostball
+		}else
+		if(dtaFall>=40 && dtaFall<=49){
+			step=-1;
+			mainx=KANAN;
+		}else 
+		if(dtaFall>=50 && dtaFall<=59){
+			step=-1;
+			mainx=KIRI;
+		}
+		else if(dtaFall==6)step=-2;
 	}
-	else if(dtaFall==6)step=-2;
 
 	initialPosition=10;
 	if(flagStrategi==false){
@@ -43,17 +48,20 @@ void Initialize(){
 	arahTendang=1;
 	countLock=0;
 	flagPEX=0;
-	countertimeout=CountLost=countLihat=countn=CountAda=0; //reset all counter
+	countertimeout=CountLost=countLihat=countn=CountAda=counterNyaduk=0; //reset all counter
+	flagNyaduk2 = flagNyaduk1 = false; //reset flag nyaduk
 	stepG=stepK=majulost=majuloss=0; //reset all variable to zero
 	flagsudahdekat=false;
 	flagrotasilostball=false;
 	flaginposition=false;
-	resetOdometry=true;
 	kakiTendang=0;
+	catchflagsama=0;
+	arahInitial=0;
 	sprintf(debug_print,"[Initialize] :: Press button to run me [%d]",arahRobot);
 	DebugAI(debug_print);
 	motionAct(sdtblax,sdtdefy,0,0);
 }
+
 
 void PositionGenerator(){
 	ethreadsearching=0;
@@ -64,7 +72,7 @@ void PositionGenerator(){
 			yBall=sdtdefy;
 			xBall=sdtblax;
 			counterpos1++;
-			DebugAI("[PosGen] :: [0] I'm waiting my neck to reach goal position");
+			// DebugAI("[PosGen] :: [0] I'm waiting my neck to reach goal position");
 			if (counterpos1>max_counterpos1){ //counter untuk memastikan yBall dan xBall telah tercapai
 				relativePosition0=0;
 				posDir=1;
@@ -83,7 +91,10 @@ void PositionGenerator(){
 				relativePosition0=relativePosition0/max_counterpos1;
 				if(relativePosition0>=3){
 					batasGiringY=1000;//changeable value
-					stepBuffer=4; //Nggiring dulu
+					arahTendang=1;
+					stepBuffer=5; //Nggiring dulu --> tendang
+					counterNyaduk=1;
+					flagNyaduk1=false;
 					flagcounterpos2=1;
 					initialPosition=10;
 					sprintf(debug_print,"[PosGen] :: [1] Am I still far ? I wanna dribble it Y => %1.2f",relativePosition0);
@@ -93,7 +104,10 @@ void PositionGenerator(){
 					yBall=sdtexcute;
 				}else if(relativePosition0>2){
 					batasGiringY=1000;//changeable value
-					stepBuffer=4; //Nggiring dulu
+					arahTendang=1;
+					stepBuffer=5; //Nggiring dulu --> tendang
+					counterNyaduk=2;
+					flagNyaduk1=false;
 					flagcounterpos2=1;
 					initialPosition=10;
 					sprintf(debug_print,"[PosGen] :: [1] Am I still far ? I wanna dribble it again Y => %1.2f",relativePosition0);
@@ -101,16 +115,16 @@ void PositionGenerator(){
 
 					xBall=sdtblax;			
 					yBall=sdtexcute;		
-				}else if(relativePosition0>1.6){
-					batasGiringY=(int)(1000*(relativePosition0-1.5));//changeable value
-					stepBuffer=4; //Nggiring dikit lagi
-					flagcounterpos2=1;
-					initialPosition=8;
-					sprintf(debug_print,"[PosGen] :: [1] I am tired, how far I must dribble it again ? %d",batasGiringY);
-					DebugAI(debug_print);	
+				// }else if(relativePosition0>1.6){
+				// 	batasGiringY=(int)(1000*(relativePosition0-1.3));//changeable value
+				// 	stepBuffer=4; //Nggiring dikit lagi
+				// 	flagcounterpos2=1;
+				// 	initialPosition=8;
+				// 	sprintf(debug_print,"[PosGen] :: [1] I am tired, how far I must dribble it again ? %d",batasGiringY);
+				// 	DebugAI(debug_print);	
 					
-					xBall=sdtblax;
-					yBall=sdtexcute;			
+				// 	xBall=sdtblax;
+				// 	yBall=sdtexcute;			
 				}else{
 					counterpos1=0;
 					DebugAI("[PosGen] :: [1] I wanna kick it, where must I kick ?");
@@ -132,7 +146,7 @@ void PositionGenerator(){
 			}
 
 		}else if(stepG==2){
-			int max_counterpos1=150;//changeable value
+			int max_counterpos1=200;//changeable value
 			relativePosition1=relativePosition2=0;
 			yBall=sdtdefy;
 			xBall=generatesdtX(90);
@@ -158,7 +172,7 @@ void PositionGenerator(){
 				DebugAI(debug_print);
 			}
 		}else if(stepG==4){
-			int max_counterpos1=150;//changeable value
+			int max_counterpos1=300;//changeable value
 			yBall=sdtdefy;
 			xBall=generatesdtX(-90);
 			posDir=3;
@@ -201,8 +215,8 @@ void PositionGenerator(){
 			flagLocalize=false;
 
 			//Generate vPos to arahTendang
-			if(vPos<1.5) 					{arahTendang=6;initialPosition=1;}//step=8;kakiTendang=2;}
-			else if(vPos>=1.5 && vPos<1.8)	{arahTendang=5;initialPosition=1;}//step=8;kakiTendang=2;}
+			if(vPos<1.5) 					{arahTendang=4;initialPosition=1;}//step=8;kakiTendang=2;}
+			else if(vPos>=1.5 && vPos<1.8)	{arahTendang=4;initialPosition=1;}//step=8;kakiTendang=2;}
 			else if(vPos>=1.8 && vPos<2.3)	{arahTendang=4;initialPosition=2;}
 			else if(vPos>=2.3 && vPos<2.4)	{arahTendang=3;initialPosition=2;}
 			else if(vPos>=2.4 && vPos<2.8)	{arahTendang=2;initialPosition=2;}
@@ -210,8 +224,8 @@ void PositionGenerator(){
 			else if(vPos>=3.2 && vPos<3.6)	{arahTendang=20;initialPosition=3;}
 			else if(vPos>=3.6 && vPos<3.9)	{arahTendang=19;initialPosition=3;}
 			else if(vPos>=3.9 && vPos<4.1)	{arahTendang=18;initialPosition=4;}
-			else if(vPos>=4.1 && vPos<4.4)	{arahTendang=17;initialPosition=4;}
-			else if(vPos>=4.4)				{arahTendang=16;initialPosition=5;}//step=8;kakiTendang=1;}
+			else if(vPos>=4.1 && vPos<4.4)	{arahTendang=18;initialPosition=4;}
+			else if(vPos>=4.4)				{arahTendang=18;initialPosition=5;}//step=8;kakiTendang=1;}
 
 			sprintf(debug_print,"[PosGen] :: I must kick the ball to %d",arahTendang);
 			DebugAI(debug_print);
@@ -226,6 +240,7 @@ void PositionGenerator(){
 
 void lostball(){
 	//nBall = ftBall3(dataXB, dataYB, 0);
+	if(laststep==-1)flaginposition=true;
 	aktifkansearching();
 	if(nBall == 1){
 		countn++;
@@ -273,6 +288,8 @@ void lostball(){
 		}
 	}else{
 		countn--;
+		if(!flaginposition) step=-1;
+		if(sdtbolay>sdtycenter)ydirectpos=0;
 		if(countn<=0)countn=0;
 		if(flagsudahdekat==false){
 			if(arahRobot<20 && arahRobot>11)motion=12;
@@ -325,11 +342,11 @@ void lostball(){
 						}
 					}
 					if(flagrotasilostball){
-						if(count10<5){
+						if(count10<0){
 							motion=10;
 						}else count10=5;
 					}else{
-						if(count10<30){
+						if(count10<0){
 							motion=10;
 						}else count10=30;
 					}
@@ -347,195 +364,178 @@ void lostball(){
 	motionAct(xBall, yBall,motion, 7);
 }
 
-void lostball_bertahan()
-{
-	int MIN_MAIN_KIRI=-2000,MAX_MAIN_KIRI=500;
-	int MIN_MAIN_KANAN=-1200,MAX_MAIN_KANAN=2400;
+void lostball_bertahan(){
 	aktifkansearching();
 	if(nBall == 1){
 		countn++;
 		motion=0;
-		if(countn>200){	
+		if(countn>75 && countn<=150){
+			motion=10;
+		}else if(countn>150){	
 			majulost=0;
 			langkah=0;
 			CountAda++;
+			flagrotasilostball=false;
 			if((arahLihat == last_arahLihat || arahLihat == rotasiarah(arahLihat+1) || arahLihat == rotasiarah(arahLihat-1))
 				&& sdtbolay>=lastsdtbolay-10 && sdtbolay<=lastsdtbolay+10){
-				DebugAI("[LostballPos] :: Bola ideal");
+				DebugAI("[Lostball] :: Bola ideal");
 				if(CountAda>50){
 					countn=CountAda=0;	
 					hit_arahRobot=false;				
-					step=2;
-					flaginposition=true;
+					step++;
 				}
 			}else if(arahLihat >= 6 && arahLihat <= 15){
-				DebugAI("[LostballPos] :: I look the ball beside me");
+				DebugAI("[Lostball] :: I look the ball beside me");
 				if(CountAda>50){
 					countn=CountAda=0;	
 					hit_arahRobot=false;
-					step=2;
-					flaginposition=true;
+					step++;
 				}
 			}else if(((1 <= arahLihat <= 5) || (16 <= arahLihat <= 20)) && sdtbolay <= 90){
-				DebugAI("[LostballPos] :: Look! The ball in front of me");
+				DebugAI("[Lostball] :: Look! The ball in front of me");
 				if(CountAda>50){
 					countn=CountAda=0;	
 					hit_arahRobot=false;
-					step=2;
-					flaginposition=true;
+					step++;
 				}
 			}else{
 				DebugAI("[Lostball] :: I look the ball, but I don't know where it is");
 				if(CountAda>50){
 					countn=CountAda=0;
 					hit_arahRobot=false;	
-					step=2;
-					flaginposition=true;
+					step++;
 				}
 			}
 			motion = GerakLurusBola(sdtbolax,sdtbolay);
-		}	
+		}
 	}else{
 		countn--;
+		if(!flaginposition) step=-1;
 		if(countn<=0)countn=0;
-		if(mainx==KIRI){
-			if(arahRobot<=20 && arahRobot>=11){ // Lepaskan robot dari kanan
-				//16
-				initialPosition=10;
-				if(arahRobot>17)motion=11;
-				else
-				if(arahRobot<15)motion=12;
-				else {
-					if(majulost<1000){
-						motion=10;
-					}else if(majulost>=1000){
-						majulost=1000;
-						majuloss++;
-					}
-
-					if(majulost>=1000 && majuloss<1200){
-						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
-						majulost=0;
-						majuloss=0;
-					}
-					majulost++;
-				}
-				if(dtaXPOS<MIN_MAIN_KIRI){
-					initialPosition=9;
-					step=1;
-					flaginposition=true;
-					majulost=majuloss=0;
-				}
-				sprintf(debug_print,"[LostballPos] :: Going to left [%d][%d]",dtaXPOS,MIN_MAIN_KIRI);
-				DebugAI(debug_print);
-			}else 
-			if(arahRobot>=1 && arahRobot<11){ //Lepaskan robot dari kiri
-				//6
-				initialPosition=9;
-				if(arahRobot>7)motion=11;///////////////////////////////////////
-				else
-				if(arahRobot<5)motion=12;///////////////////////////////////////
-				else {
-					if(majulost<1000){
-						motion=10;
-					}else if(majulost>=1000){
-						majulost=1000;
-						majuloss++;
-					}
-
-					if(majulost>=1000 && majuloss<1200){
-						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
-						majulost=0;
-						majuloss=0;
-					}
-					majulost++;
-				}
-				if(dtaXPOS>MAX_MAIN_KIRI){
-					initialPosition=9;
-					step=1;
-					flaginposition=true;
-					majulost=majuloss=0;
-				}
-			}
-			sprintf(debug_print,"[LostballPos] :: Going to left [%d][%d]",dtaXPOS,MAX_MAIN_KIRI);
-			DebugAI(debug_print);
-		}else
-		if(mainx==KANAN){
-			if(arahRobot<=20 && arahRobot>=11){ // Lepaskan robot dari kanan
-				//16
-				initialPosition=10;
-				if(arahRobot>17)motion=11;
-				else
-				if(arahRobot<15)motion=12;
-				else {
-					if(majulost<1000){
-						motion=10;
-					}else if(majulost>=1000){
-						majulost=1000;
-						majuloss++;
-					}
-
-					if(majulost>=1000 && majuloss<1200){
-						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
-						majulost=0;
-						majuloss=0;
-					}
-					majulost++;
-				}
-				if(dtaXPOS<MIN_MAIN_KANAN){
-					initialPosition=10;
-					step=1;
-					flaginposition=true;
-					majulost=majuloss=0;
-				}
-				sprintf(debug_print,"[LostballPos] :: Going to right [%d][%d]",dtaXPOS,MIN_MAIN_KANAN);
-				DebugAI(debug_print);
-			}else 
-			if(arahRobot>=1 && arahRobot<11){ //Lepaskan robot dari kiri
-				//6
-				initialPosition=9;
-				if(arahRobot>6)motion=11;
-				else
-				if(arahRobot<6)motion=12;
-				else {
-					if(majulost<1000){
-						motion=10;
-					}else if(majulost>=1000){
-						majulost=1000;
-						majuloss++;
-					}
-
-					if(majulost>=1000 && majuloss<1200){
-						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
-						majulost=0;
-						majuloss=0;
-					}
-					majulost++;
-				}
-				if(dtaXPOS>MAX_MAIN_KANAN){
-					initialPosition=10;
-					step=1;
-					flaginposition=true;
-					majulost=majuloss=0;
-				}
-				sprintf(debug_print,"[LostballPos] :: Going to right [%d][%d]",dtaXPOS,MAX_MAIN_KANAN);
-				DebugAI(debug_print);
-			}
-		}else{
-			motion=10;
-			DebugAI("[LostballPos] :: What must I do?");
+		//sebelah kanannya
+		if(InvSudut(bufferTendang)-InvSudut(bufferTendangMax)<=0){
+			// if(arahRobot>=1 && arahRobot<11){
+			// 	motion=11;
+			// }else{
+			// 	if(arahRobot<16)motion=12;
+			// 	else if(arahRobot>16)motion=11;
+			// 	else{
+			// 		if(InvSudut(bufferTendang)-InvSudut(bufferTendangMax)<-54){
+			// 			motion=20;
+			// 			takeMotion=0;
+			// 		//}else
+			// 		//if(InvSudut(bufferTendang)-InvSudut(bufferTendangMax)>-36){
+			// 		//	motion=19;
+			// 		}else{
+			// 			if(takeMotion<100){
+			// 				motion=10;
+			// 			}else{
+			// 				motion=0;	
+			// 			}
+			// 			takeMotion++;
+			// 			if(takeMotion>100)takeMotion=100;
+			// 		} 
+			// 	}
+			// }
+			motion=21;
+		}else{//sebelah kirinya
+			// if(arahRobot>=1 && arahRobot<11){
+			// 	if(arahRobot<6)motion=12;
+			// 	else if(arahRobot>6)motion=11;
+			// 	else{
+			// 		if(InvSudut(bufferTendang)-InvSudut(bufferTendangMax)>54){
+			// 			motion=20;
+			// 			takeMotion=0;
+			// 		//}else
+			// 		//if(InvSudut(bufferTendang)-InvSudut(bufferTendangMax)<36){
+			// 		//	motion=19;
+			// 		}else{
+			// 			if(takeMotion<100){
+			// 				motion=10;
+			// 			}else{
+			// 				motion=0;	
+			// 			}
+			// 			takeMotion++;
+			// 			if(takeMotion>100)takeMotion=100;
+			// 		}
+			// 	}
+			// }else{
+			// 	motion=12;
+			// }
+			motion=22;
 		}
+
+		// if(){
+		// 	if(arahRobot<20 && arahRobot>11)motion=12;
+		// 	else if(arahRobot>2 && arahRobot<=11)motion=11;
+		// 	else{
+		// 		if(majulost<1000){
+		// 			motion=20;
+		// 		}else if(majulost>=1000){
+		// 			majulost=1000;
+		// 			majuloss++;
+		// 		}
+
+		// 		if(majulost>=1000 && majuloss<1200){
+		// 			motion=10;
+		// 		}else if(majulost>=1000 && majuloss>=1200){
+		// 			majulost=0;
+		// 			majuloss=0;
+		// 		}
+		// 		majulost++;
+		// 	}
+		// }else{
+		// 	switch(stepK){
+		// 		case 0:
+		// 			init_arahRobot=arahRobot;
+		// 			hit_arahRobot=false;
+		// 			last_arahRobot=arahRobot;
+		// 			stepK=1;
+		// 			count10=0;
+		// 			lostball_arahx=arahX;
+		// 		break;
+		// 		case 1:
+		// 			count10++;
+		// 			if(arahRobot==rotasiarah(init_arahRobot+10))hit_arahRobot=true;
+		// 			if(arahRobot==init_arahRobot && hit_arahRobot){
+		// 				stepK=0;
+		// 				if(flagrotasilostball){
+		// 					flagsudahdekat=false;
+		// 					flagrotasilostball=false;
+		// 				}else{
+		// 					flagrotasilostball=true;
+		// 				}
+
+		// 			}else{
+		// 				if(lostball_arahx){
+		// 					if(flagrotasilostball)motion=22;
+		// 					else motion=12;
+		// 				}else{
+		// 					if(flagrotasilostball)motion=21;
+		// 					else motion=11;
+		// 				}
+		// 			}
+		// 			if(flagrotasilostball){
+		// 				if(count10<0){
+		// 					motion=10;
+		// 				}else count10=5;
+		// 			}else{
+		// 				if(count10<0){
+		// 					motion=10;
+		// 				}else count10=30;
+		// 			}
+
+		// 			if(last_arahRobot!=arahRobot){
+		// 				count10=0;
+		// 			}
+		// 			last_arahRobot=arahRobot;
+		// 		break;
+		// 	}
+		// }	
 	}
 
-	if(dtflagsama==1){
-		xBall=sdtblax;
-		yBall=sdtexcute;
-		motion=0;
-		fprintf(stderr,"masuk diving\n");
+	if(catchflagsama==1){
+		step=-3;
 	}
 
 	//fprintf(stderr, "xBall=%d | yBall=%d | motion=%d\n",xBall,yBall,motion);
@@ -554,23 +554,30 @@ void TaktikBertahan(){
 		else if(sdtbolax<-12)	motion=25;
 		if(motion==17 || motion==18) motion=10;
 
-		if(sdtbolay <= 70 && (arahLihat == rotasiarah(arahhadap)   || 
+		if(sdtbolay <= 75 && (arahLihat == rotasiarah(arahhadap)   || 
 															 arahLihat == rotasiarah(arahhadap-1) ||
 															 arahLihat == rotasiarah(arahhadap+1) ))
 		{
 			countertimeout++;
 			sprintf(debug_print,"[TaktikBertahan] :: I'm already to defend the ball [%d]",countertimeout);
 			DebugAI(debug_print);
-			if(countertimeout>500) { 
-				countertimeout=500;
+			if(countertimeout>300) { 
+				countertimeout=300;
 				motion = 10;
 				flagsudahdekat=true;
 				flagrotasilostball=true;
+				takeMotion++;
 			}
 
 		}else{
 			countertimeout--;	
 		} 
+		if(motion==10){
+			takeMotion++;
+			if(takeMotion>=100)motion=0;
+			if(takeMotion>100)takeMotion=100;
+		}else takeMotion=0;
+
 		if (countertimeout<=0)countertimeout=0;
 		CountLost--;
 		if(CountLost<=0)CountLost=0;
@@ -585,60 +592,11 @@ void TaktikBertahan(){
 		}
 	}
 
-	if(dtflagsama==1){
-		xBall=sdtblax;
-		yBall=sdtexcute;
-		motion=0;
-		fprintf(stderr,"masuk diving\n");
+	if(catchflagsama==1){
+		step=-3;
 	}
 	motionAct(xBall,yBall,motion,0);
 	//fprintf(stderr,"Countlhtgw = %d\n",countlihatgw);
-}
-
-void TaktikBertahan_off()
-{
-	int arahhadap = 1;
-	aktifkansearching();
-	if(nBall == 1){
-		lastXBall = xBall;
-		lastYBall = yBall;
-
-		motion = GerakHadapBola(sdtbolax,sdtbolay-30,arahRobot,arahhadap);
-		if(sdtbolax>12) motion=26;
-		else if(sdtbolax<-12) motion=25;
-		if(motion==17 || motion==18) motion=10;
-
-		if(sdtbolay<=70 && (arahLihat == rotasiarah(arahhadap) ||
-														   arahLihat == rotasiarah(arahhadap-1) ||
-														   arahLihat == rotasiarah(arahhadap+1) ))
-		{
-			countertimeout++;
-			sprintf(debug_print,"[TaktikBertahan] :: I'm already to defend the ball [%d]", countertimeout);
-			DebugAI(debug_print);
-			if(countertimeout>500){
-				countertimeout=500;
-				motion=10;
-				flagsudahdekat=true;
-				flagrotasilostball=true;
-			}
-		}else{
-			countertimeout--;	
-		}
-		if(countertimeout<=0) countertimeout=0;
-		CountLost--;
-		if(CountLost<=0) CountLost=0;
-	}else{
-		countertimeout--;
-		if(countertimeout<=0) countertimeout=0;
-		CountLost++;
-		if(CountLost>700){
-			DebugAI("[TaktikBertahan] :: Good Bye I'm Dead");
-				//step=1;
-				motion = 0;
-				CountLost = countertimeout = 0;
-		}
-	} 
-	motionAct(sdtblax, sdtexcute, motion, 0);
 }
 
 void TaktikkeBola3(int arahhadap){
@@ -739,6 +697,286 @@ void TaktikkeBola3(int arahhadap){
 	//fprintf(stderr,"Countlhtgw = %d\n",countlihatgw);
 }
 
+void TaktikkeBola4(int arahhadap){
+	flaginposition=true;
+	aktifkansearching();
+	kaki = 0;
+	if(nBall == 1)
+	{
+		lastXBall = xBall;
+		lastYBall = yBall;
+		//countlookball++;
+
+		motion = GerakHadapBola(sdtbolax,sdtbolay,arahRobot,arahhadap);
+		if(motion==10)count10kebola++;
+		if(count10kebola>120){
+			motion = GerakHadapBolaSensitive(sdtbolax,sdtbolay,arahRobot,arahhadap);
+		}
+
+		if(sdtbolay <= 40 && sdtbolax<20 && sdtbolax>-20 && (arahRobot == rotasiarah(arahhadap)   || 
+															 arahRobot == rotasiarah(arahhadap-1) ||
+															 arahRobot == rotasiarah(arahhadap+1) ))
+		{
+			countertimeout++;
+			sprintf(debug_print,"[TaktikkeBola] :: I'm already to kick the ball [%d]",countertimeout);
+			DebugAI(debug_print);
+			if(countertimeout>50){
+				countertimeout=0;
+				//counterNyaduk++;
+				//step=9; //with game controller
+				//if(dtaYPOS>1500){
+				//	counterNyaduk=3;
+				//}//else if(initialPosition>5 && dtaYPOS<1500)counterNyaduk=2;
+				sprintf(debug_print,"[TaktikkeBola] :: Tendang dulu bro 1 [%d]",counterNyaduk);
+				DebugAI(debug_print);
+				//if (counterNyaduk>2){flagNyaduk1 = true;counterNyaduk=3;}
+
+				//if(flagNyaduk1 == true) { 				
+				if(true){
+					//arahTendang=bufferTendang;
+					//if(initialPosition>5){
+					if(false){
+						batasGiringY=0;
+						arahNggiring=1;
+						step=4;//Nggiring 
+					}else{
+						//perubahan besar pada odometry X / Y
+						//if(dtaYPOS<-800){
+						if(false){
+							step=4; //ke nggiring
+							arahNggiring=arahTendang=1;//hadap 1 utk siap siap position generator
+							initialPosition=7;
+							batasGiringY=dtaYPOS-300; //langsung reset odometry, karena giring sudah terpenuhi
+							flagNyaduk1 = flagNyaduk2 = false;
+							counterNyaduk=0;
+						}else if(dtaXPOS>400 || dtaXPOS<-400){
+							//arahTendang=rotasiarah((-1*((int)(dtaXPOS/400)))+arahTendang);
+							step=5;
+							//resetOdometry=true;
+						}else{
+							step=5;//Luruskan ke arah tendang
+							//resetOdometry=true; 
+						}
+					}
+					countertimeout = countLihatblg = count10kebola = 0; 
+					motion = 10;
+					flagsudahdekat=true;
+				}
+
+			}
+		}
+		else countertimeout--;
+		
+		if(lastrefree==7){
+			step=5;			
+		}
+		else{
+			if(arahInitial==0){
+				if(sdtbolay <= 40 && sdtbolax<15 && sdtbolax>-15){
+					if(arahRobot==rotasiarah(arahhadap+4) || arahRobot==rotasiarah(arahhadap+5) || arahRobot==rotasiarah(arahhadap+3)){
+						step=8;
+						kakiTendang=1;
+					}else 
+					if(arahRobot==rotasiarah(arahhadap-4) || arahRobot==rotasiarah(arahhadap-5) || arahRobot==rotasiarah(arahhadap-3)){
+						step=8;
+						kakiTendang=2;
+					}
+					flagsudahdekat=true;
+				}
+			}
+		}
+		
+		// if(arahInitial==0){
+		// 	if(sdtbolay <= 40 && sdtbolax<15 && sdtbolax>-15){
+		// 		if(arahRobot==rotasiarah(arahhadap+4) || arahRobot==rotasiarah(arahhadap+5) || arahRobot==rotasiarah(arahhadap+3)){
+		// 			step=8;
+		// 			kakiTendang=1;
+		// 		}else 
+		// 		if(arahRobot==rotasiarah(arahhadap-4) || arahRobot==rotasiarah(arahhadap-5) || arahRobot==rotasiarah(arahhadap-3)){
+		// 			step=8;
+		// 			kakiTendang=2;
+		// 		}
+		// 	}
+		// }
+
+/*		if (sdtbolay >= 50 && (arahRobot<=12 && arahRobot>=10)){
+			counterTerobos++ ;
+			motion = GerakTerobosBola(sdtbolax,sdtbolay,arahRobot,arahhadap);
+			sprintf(debug_print,"[TaktikkeBola] :: Maju Terobos step 1");
+			DebugAI(debug_print);
+			if (counterTerobos > 100){
+				flagCuri = true ;
+				if(arahLihat<11)arahTerobos=1;
+				else arahTerobos=2;
+					
+			} 
+		}
+
+		if(flagCuri==true){
+			if(arahTerobos==1)motion = GerakHadapBola(sdtbolax,sdtbolay,arahRobot,16);
+			else motion = GerakHadapBola(sdtbolax,sdtbolay,arahRobot,5);
+			if(sdtbolay>40)motion=GerakTerobosBola(sdtbolax,sdtbolay,arahRobot,arahhadap);
+			if(sdtbolay <= 30 && sdtbolax<30 && sdtbolax>-30 && ((arahRobot <= 16 && arahRobot >= 14) || (arahRobot <= 6 && arahRobot >= 4))){
+				if(sdtbolax > 15) 	motion = 14;
+				else if(sdtbolax < -15) motion = 13;
+			}
+			if(sdtbolay <= 30 && sdtbolax<15 && sdtbolax>-15 && ((arahRobot <= 16 && arahRobot >= 14) || (arahRobot <= 6 && arahRobot >= 4))){
+				flagCuri2=true;
+			}
+		}
+
+		if (flagCuri2== true){
+			countRebut++ ;
+			sprintf(debug_print,"[TaktikkeBola] :: Maju Terobos step 2");
+			DebugAI(debug_print);
+			motion = 20 ;
+			if (countRebut > 300){
+				counterTerobos = countRebut = 0 ;
+				flagCuri = flagCuri2 = false;
+			}
+		}
+*/
+		if (countertimeout<=0)countertimeout=0;
+		CountLost--;
+		if(CountLost<=0)CountLost=0;
+	}else{
+		//countlookball+=0.8;
+		CountLost++;
+		if(CountLost < 100 && CountLost > 50) {
+			DebugAI("[TaktikkeBola] :: The ball disappear, are you an assassin?");
+			motion=10;
+		}else
+		if(CountLost < 200 && CountLost > 100) {
+			DebugAI("[TaktikkeBola] :: I step back to find the ball");
+			motion=19;//ganti
+		}else
+		if(CountLost>200){
+			DebugAI("[TaktikkeBola] :: I'm already lost the ball");
+			step=1; //kembali ke lostball
+			CountLost = 0;
+		}
+	}
+	motionAct(xBall,yBall,motion,0);
+	// motionAct(xBall,yBall,0,0);
+	//fprintf(stderr,"Countlhtgw = %d\n",countlihatgw);
+}
+
+void Goal_Teknik(){
+	if(nBall == 1)
+	{
+		lastXBall = xBall;
+		lastYBall = yBall;
+		//countlookball++;
+
+		motion = GerakHadapBola(sdtbolax,sdtbolay,arahRobot,arahhadap);
+		if(motion==10)count10kebola++;
+		if(count10kebola>120){
+			motion = GerakHadapBolaSensitive(sdtbolax,sdtbolay,arahRobot,arahhadap);
+		}
+
+		if(sdtbolay <= 40 && sdtbolax<20 && sdtbolax>-20 && (arahRobot == rotasiarah(arahhadap)   || 
+															 arahRobot == rotasiarah(arahhadap-1) ||
+															 arahRobot == rotasiarah(arahhadap+1) ))
+		{
+			countertimeout++;
+			sprintf(debug_print,"[TaktikkeBola] :: I'm already to kick the ball [%d]",countertimeout);
+			DebugAI(debug_print);
+			if(countertimeout>50){
+				countertimeout=0;
+				//counterNyaduk++;
+				//step=9; //with game controller
+				//if(dtaYPOS>1500){
+				//	counterNyaduk=3;
+				//}//else if(initialPosition>5 && dtaYPOS<1500)counterNyaduk=2;
+				sprintf(debug_print,"[TaktikkeBola] :: Tendang dulu bro 1 [%d]",counterNyaduk);
+				DebugAI(debug_print);
+				//if (counterNyaduk>2){flagNyaduk1 = true;counterNyaduk=3;}
+
+				//if(flagNyaduk1 == true) { 				
+				if(true){
+					//arahTendang=bufferTendang;
+					//if(initialPosition>5){
+					if(false){
+						batasGiringY=0;
+						arahNggiring=1;
+						step=4;//Nggiring 
+					}else{
+						//perubahan besar pada odometry X / Y
+						//if(dtaYPOS<-800){
+						if(false){
+							step=4; //ke nggiring
+							arahNggiring=arahTendang=1;//hadap 1 utk siap siap position generator
+							initialPosition=7;
+							batasGiringY=dtaYPOS-300; //langsung reset odometry, karena giring sudah terpenuhi
+							flagNyaduk1 = flagNyaduk2 = false;
+							counterNyaduk=0;
+						}else if(dtaXPOS>400 || dtaXPOS<-400){
+							//arahTendang=rotasiarah((-1*((int)(dtaXPOS/400)))+arahTendang);
+							step=5;
+							//resetOdometry=true;
+						}else{
+							step=5;//Luruskan ke arah tendang
+							//resetOdometry=true; 
+						}
+					}
+					countertimeout = countLihatblg = count10kebola = 0; 
+					motion = 10;
+					flagsudahdekat=true;
+				}
+
+			}
+		}
+		else countertimeout--;
+		
+		
+	motionAct(xBall,yBall,motion,0);
+	// motionAct(xBall,yBall,0,0);
+	//fprintf(stderr,"Countlhtgw = %d\n",countlihatgw);
+}
+
+/*============================Taktik Penalty===========================================*/
+void InitializePen(){
+	resetOdometry=true;
+	if(dtaXPOS==0 && dtaYPOS==0){
+		if (dtaFall==2){
+			//flagGetPosition=0; //reset flag pada taktik PositionGenerator
+			step=1; //Lostball
+		}else
+		if(dtaFall>=40 && dtaFall<=49){
+			step=-1;
+			mainx=KANAN;
+		}else 
+		if(dtaFall>=50 && dtaFall<=59){
+			step=-1;
+			mainx=KIRI;
+		}
+		else if(dtaFall==6)step=-2;
+	}
+
+	initialPosition=10;
+	if(flagStrategi==false){
+		batasGiringY=2000;
+		arahNggiring=1;
+	}
+	arahTendang=1;
+	countLock=0;
+	flagPEX=0;
+	countertimeout=CountLost=countLihat=countn=CountAda=counterNyaduk=0; //reset all counter
+	flagNyaduk2 = flagNyaduk1 = false; //reset flag nyaduk
+	stepG=stepK=majulost=majuloss=0; //reset all variable to zero
+	flagsudahdekat=false;
+	flagrotasilostball=false;
+	flaginposition=false;
+	kakiTendang=0;
+	catchflagsama=0;
+	// arahInitial=0;
+	sprintf(debug_print,"[Initialize] :: Press button to run me [%d]",arahRobot);
+	DebugAI(debug_print);
+	motionAct(sdtblax,sdtdefy,0,0);
+}
+
+/*====================================================================================================*/
+
 void TaktikNggiring3(){
 	aktifkansearching();
 	if (nBall == 1 ){
@@ -750,7 +988,8 @@ void TaktikNggiring3(){
 			sprintf(debug_print,"[TaktikNggiring] :: Giring.. Giring.. Y=>%d",dtaYPOS);
 			DebugAI(debug_print);
 			if(resetOdometry==false){
-				if(dtaYPOS>batasGiringY){
+				if(true){
+				//if(dtaYPOS>batasGiringY){
 					sprintf(debug_print,"[TaktikNggiring] :: I'm tired, I wanna check my position [%d][%d]",dtaYPOS,batasGiringY);
 					DebugAI(debug_print);
 					if(arahNggiring!=1){
@@ -794,9 +1033,9 @@ void TaktikLuruskanGW_wide(){
 	if(nBall == 1){
 		//lastXBall = xBall;
 		//lastYBall = yBall;
-		motion = GerakHadapBolaSensitive(sdtbolax,sdtbolay,arahRobot,arahTendang);
+		motion = GerakHadapBola(sdtbolax,sdtbolay,arahRobot,bufferTendang);
 
-		if(arahRobot==arahTendang && sdtbolax>-15 && sdtbolax<15){
+		if(arahRobot==bufferTendang && sdtbolay<35 && ( (sdtbolax>-25 && sdtbolax<=-15 && dataXB>=212) || (sdtbolax<25 && sdtbolax>=15 && dataXB<212) || (sdtbolax>-15 && sdtbolax<15) ) ){
 			DebugAI("[TaktikLuruskan] :: I wanna kick it now");
 			countertimeout++;
 			if(countertimeout>50){
@@ -808,11 +1047,61 @@ void TaktikLuruskanGW_wide(){
 		}else countertimeout--;
 		if (countertimeout<=0)countertimeout=0;
 
-		if(dtaYPOS<-800){
-			step=4; //ke nggiring
-			arahNggiring=1;//hadap 1 utk siap siap position generator
-			batasGiringY=dtaYPOS-300; //langsung reset odometry, karena giring sudah terpenuhi
+		// if(dtaYPOS<-800){
+		// 	step=4; //ke nggiring
+		// 	arahNggiring=1;//hadap 1 utk siap siap position generator
+		// 	batasGiringY=dtaYPOS-300; //langsung reset odometry, karena giring sudah terpenuhi
+		// }
+		CountLost=0;
+	}else{
+		
+		CountLost++;
+		if(CountLost < 100 && CountLost > 50) {
+			DebugAI("[TaktikLuruskan] :: The ball disappear, are you an assassin?");
+			motion=10;
+		}else
+		if(CountLost < 200 && CountLost > 100) {
+			DebugAI("[TaktikLuruskan] :: I step back to find the ball");
+			motion=19;
+		}else
+		if(CountLost>200){
+			DebugAI("[TaktikLuruskan] :: I'm already lost the ball");
+			step=1; //kembali ke lostball
+			CountLost = 0;
 		}
+	}
+
+	motionAct(xBall,yBall,motion,0);
+	//fprintf(stderr,"Motion(%d) Heading(%d) eks(%d) sdtptar(%d) stepP(%d)\n",motion,heading_skr,suduteksekusi,sudutputar,stepP);
+}
+
+void TaktikLuruskanGW_wide_rokh(){
+	aktifkansearching();
+	if(nBall == 1){
+		//lastXBall = xBall;
+		//lastYBall = yBall;
+		int targetTendang;
+		if(kakiTendang==1) targetTendang=rotasiarah(bufferTendang+3);
+		else targetTendang=rotasiarah(bufferTendang-3);
+		motion = GerakHadapBola(sdtbolax,sdtbolay,arahRobot,targetTendang);
+
+		if(arahRobot==targetTendang && sdtbolax>-15 && sdtbolax<15 && sdtbolay<35){
+			DebugAI("[TaktikLuruskan] :: I wanna kick it now");
+			countertimeout++;
+			if(countertimeout>50){
+				motion = 10;
+				//arahTendang=1; //reset variable
+				step=9; //TaktikEksekusiSamping
+				countertimeout=0;
+			}
+		}else countertimeout--;
+		if (countertimeout<=0)countertimeout=0;
+
+		// if(dtaYPOS<-800){
+		// 	step=4; //ke nggiring
+		// 	arahNggiring=1;//hadap 1 utk siap siap position generator
+		// 	batasGiringY=dtaYPOS-300; //langsung reset odometry, karena giring sudah terpenuhi
+		// }
 		CountLost=0;
 	}else{
 		
@@ -838,16 +1127,18 @@ void TaktikLuruskanGW_wide(){
 
 void TaktikEksekusi4(){
 	int batascounttendang = 100;
-	//int madepgawang=0;//CariArahGawang(suduteksekusi,0);
-	//enablevision = 0b00001;
-	motion=GerakEksekusiwide(dataXB,dataYB,0);
+	
+	if(flagKickOff)motion=GerakEksekusiwide(dataXB,dataYB,1);
+	else motion=GerakEksekusiwide(dataXB,dataYB,0);
+
 	if(dataXB !=0 && dataYB!=0){
 		lastdataXB=dataXB;
-		if(motion == 5 || motion == 6)  { 
+		if(motion == 5 || motion == 6 || motion == 7 || motion == 8)  { 
 			DebugAI("[TaktikEksekusi] :: Bismillah, I kick the ball");
 			Kick = 1; 
 			kaki = motion; 
-			resetOdometry=true;
+			//arahTendang=bufferTendang;
+			//resetOdometry=true;
 			//if(arahRobot!=madepgawang){countLuruskanGawang++;motion=10;}
 			//else 
 			countgerak++;
@@ -863,7 +1154,7 @@ void TaktikEksekusi4(){
 	}else{
 		if(Kick==1){
 			countLihat++;
-			if(countLihat>200) {step++; countLihat =  countgerak = 0;}else{motion=10;}
+			if(countLihat>200) {step=7; countLihat =  countgerak = 0;}//else{motion=10;}
 			stepT = 1;
 			DebugAI("[TaktikEksekusi] :: The ball is kicked");
 		}else{
@@ -874,8 +1165,8 @@ void TaktikEksekusi4(){
 			if(CountLost > 300){
 				if(lastdataXB<212)motion=5;
 				else motion=6;
-				step++;
-				//Kick=1;
+				//step=7;
+				Kick=1;
 			}
 		}
 	}
@@ -895,49 +1186,18 @@ void TaktikEksekusi4(){
 	}else motionAct(sdtblax,sdtexcute,motion,0);	
 }
 
-void TaktikPEksekusi(){
-	flagPEX=true;
-	aktifkansearching();
-	if(dtaYPOS==0 && dtaXPOS==0){
-		if(countLihat<0){
-			xBall=sdtblax;
-			yBall=sdtdefy;
-			DebugAI("[TaktikPEksekusi] :: Where is the ball ?");
-		}else if(countLihat>150){
-			if(nBall){
-				sprintf(debug_print,"[TaktikPEksekusi] :: I look the ball [%d]",countLihat);
-				DebugAI(debug_print);
-				step=2; //ke bola
-			}else{
-				sprintf(debug_print,"[TaktikPEksekusi] :: I miss the ball [%d]",countLihat);
-				DebugAI(debug_print);
-				step=1; //Lostball
-			}
-			flagPEX=false;
-			countLihat=0;
-		}
-		countLihat++;
-	}else{
-		kakiTendang=0; //Reset kakiTendang untuk Tendang Samping
-		resetOdometry=true;
-	}
-	motion=0;
-	motionAct(xBall,yBall,motion,0);	
-}
-void TaktikEksekusiSamping(){
+void TaktikEksekusi5(){
 	int batascounttendang = 100;
-	//int madepgawang=0;//CariArahGawang(suduteksekusi,0);
-	//enablevision = 0b00001;
-	if (kakiTendang==1)	motion=GerakEksekusiSampingKananwide(dataXB,dataYB,0);
-	else if (kakiTendang==2) motion=GerakEksekusiSampingKiriwide(dataXB,dataYB,0);
-	else step=6; //Selain itu ada kesalahan fungsi, maka tendang lurus
+	aktifkansearching();
+	motion=GerakTendangjauhfast(sdtbolax,sdtbolay+3);
 
 	if(dataXB !=0 && dataYB!=0){
 		lastdataXB=dataXB;
-		if(motion == 7 || motion == 8)  { 
-			DebugAI("[TaktikEksekusiS] :: Bismillah, I kick the ball");
+		if(motion == 5 || motion == 6 || motion == 7 || motion == 8)  { 
+			DebugAI("[TaktikEksekusi] :: Bismillah, I kick the ball");
 			Kick = 1; 
 			kaki = motion; 
+			arahTendang=bufferTendang;
 			resetOdometry=true;
 			//if(arahRobot!=madepgawang){countLuruskanGawang++;motion=10;}
 			//else 
@@ -954,7 +1214,122 @@ void TaktikEksekusiSamping(){
 	}else{
 		if(Kick==1){
 			countLihat++;
-			if(countLihat>200) {step++; countLihat =  countgerak = 0;}else{motion=10;}
+			if(countLihat>200) {step++; countLihat =  countgerak = 0;}//else{motion=10;}
+			stepT = 1;
+			DebugAI("[TaktikEksekusi] :: The ball is kicked");
+		}else{
+			Kick=0;
+			DebugAI("[TaktikEksekusi] :: I'm not kicked the ball, why the ball is missing?");
+			countLihat=0;
+			CountLost++;
+			if(CountLost > 300){
+				if(lastdataXB<212)motion=5;
+				else motion=6;
+				//step++;
+				Kick=1;
+			}
+		}
+	}
+	if(countgerak>batascounttendang){
+		aktifkansearching();
+		if(nBall==1)countLock++;
+		else countLock--;
+
+		if(countLock<=0){
+			countLock=0;
+			step=1;
+		}else if(countLock>100){
+			countLock=0;
+			step=2;
+		}
+		//motionAct(xBall,yBall,motion,0);	
+	}//else motionAct(sdtblax,sdtexcute,motion,0);	
+	motionAct(xBall,yBall,motion,0);	
+}
+
+void TaktikPEksekusi(){
+	flagPEX=true;
+	arahInitial=0;
+	aktifkansearching();
+	flagKickOff=false;
+	if(dtaYPOS==0 && dtaXPOS==0){
+		if(countLihat<0){
+			xBall=sdtblax;
+			yBall=sdtdefy;
+			DebugAI("[TaktikPEksekusi] :: Where is the ball ?");
+		}else if(countLihat>190 && countLihat<=200){
+			if(nBall){
+				sprintf(debug_print,"[TaktikPEksekusi] :: I look the ball [%d]",countLihat);
+				DebugAI(debug_print);
+				flagPEX=false;
+				countLihat=0;
+				step=2; //ke bola
+			}
+		}else if(countLihat>200 && countLihat<=300){
+			if (kaki==7){
+				xBall=sdtblax+400;
+				yBall=sdtdefy-100;
+			}else if (kaki==8){
+				xBall=sdtblax-400;
+				yBall=sdtdefy-100;
+			}else{
+				xBall=sdtblax;
+				yBall=sdtdefy;
+			}
+		}else if(countLihat>300){
+			if(kaki==7)arahX=1;
+			else if(kaki==8)arahX=0;
+			else{
+				if(arahRobot>=1 && arahRobot<11)arahX=1;
+				else arahX=0;
+			}
+			
+			sprintf(debug_print,"[TaktikPEksekusi] :: I miss the ball [%d]",countLihat);
+			DebugAI(debug_print);
+			step=1; //Lostball
+			flagPEX=false;
+			countLihat=0;
+		}
+		countLihat++;
+	}else{
+		kakiTendang=0; //Reset kakiTendang untuk Tendang Samping
+		resetOdometry=true;
+	}
+	motion=10;
+	motionAct(xBall,yBall,motion,0);	
+}
+void TaktikEksekusiSamping(){
+	int batascounttendang = 100;
+	//int madepgawang=0;//CariArahGawang(suduteksekusi,0);
+	//enablevision = 0b00001;
+	if (kakiTendang==1)	motion=GerakEksekusiSampingKananwide(dataXB,dataYB,0);
+	else if (kakiTendang==2) motion=GerakEksekusiSampingKiriwide(dataXB,dataYB,0);
+	else step=5; //Selain itu ada kesalahan fungsi, maka tendang lurus
+
+	if(dataXB !=0 && dataYB!=0){
+		lastdataXB=dataXB;
+		if(motion == 7 || motion == 8)  { 
+			DebugAI("[TaktikEksekusiS] :: Bismillah, I kick the ball");
+			Kick = 1; 
+			kaki = motion; 
+			//arahTendang=bufferTendang;
+			//resetOdometry=true;
+			//if(arahRobot!=madepgawang){countLuruskanGawang++;motion=10;}
+			//else 
+			countgerak++;
+	 	}else countgerak--;
+		if(countgerak>batascounttendang){ 
+			motion = kaki; 
+			if(motion==0) motion =20; 
+			countgerak = batascounttendang+1; 
+			//tendangTrue=1;
+		}else if(countgerak<0) countgerak=0;
+		//if(countLuruskanGawang>50){step=4;countLuruskanGawang=0;motion=10;}
+		CountLost = 0;
+	}else{
+		if(Kick==1){
+			countLihat++;
+			if(countLihat>200) {step=7; countLihat =  countgerak = 0;}else{motion=10;}
 			stepT = 1;
 			DebugAI("[TaktikEksekusiS] :: The ball is kicked");
 		}else{
@@ -965,7 +1340,7 @@ void TaktikEksekusiSamping(){
 			if(CountLost > 300){
 				if(lastdataXB<212)motion=5;
 				else motion=6;
-				step++;
+				step=7;
 				//Kick=1;
 			}
 		}
@@ -986,9 +1361,10 @@ void TaktikEksekusiSamping(){
 	}else motionAct(sdtblax,sdtexcute,motion,0);	
 }
 
+
 void lostball_positioning(){
-	int MIN_MAIN_KIRI=-2000,MAX_MAIN_KIRI=500;
-	int MIN_MAIN_KANAN=-1200,MAX_MAIN_KANAN=2400;
+	int MIN_MAIN_KIRI=-4000,MAX_MAIN_KIRI=500;
+	int MIN_MAIN_KANAN=-1200,MAX_MAIN_KANAN=3000;
 	aktifkansearching();
 	if(nBall == 1){
 		countn++;
@@ -1034,15 +1410,25 @@ void lostball_positioning(){
 			motion = GerakLurusBola(sdtbolax,sdtbolay);
 		}	
 	}else{
+
+		if(dtaFall==51  || dtaFall == 41)serongLost=2;
+		else 
+		if(dtaFall==52 || dtaFall==42)serongLost=1;
+		else 
+		if( dtaFall==55 || dtaFall == 45)serongLost=-2;
+		else
+		if(dtaFall==54 || dtaFall == 44)serongLost=-1;
+
 		countn--;
 		if(countn<=0)countn=0;
 		if(mainx==KIRI){
 			if(arahRobot<=20 && arahRobot>=11){ // Lepaskan robot dari kanan
 				//16
+				arahTendang=17;
 				initialPosition=10;
-				if(arahRobot>17)motion=11;
+				if(arahRobot>16-serongLost)motion=21;
 				else
-				if(arahRobot<15)motion=12;
+				if(arahRobot<16-serongLost)motion=22;
 				else {
 					if(majulost<1000){
 						motion=20;
@@ -1051,9 +1437,9 @@ void lostball_positioning(){
 						majuloss++;
 					}
 
-					if(majulost>=1000 && majuloss<1200){
+					if(majulost>=1000 && majuloss<0){
 						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
+					}else if(majulost>=1000 && majuloss>=0){
 						majulost=0;
 						majuloss=0;
 					}
@@ -1070,10 +1456,11 @@ void lostball_positioning(){
 			}else 
 			if(arahRobot>=1 && arahRobot<11){ //Lepaskan robot dari kiri
 				//6
+				arahTendang=5;
 				initialPosition=9;
-				if(arahRobot>7)motion=11;
+				if(arahRobot>6-serongLost)motion=21;
 				else
-				if(arahRobot<5)motion=12;
+				if(arahRobot<6-serongLost)motion=22;
 				else {
 					if(majulost<1000){
 						motion=20;
@@ -1082,9 +1469,9 @@ void lostball_positioning(){
 						majuloss++;
 					}
 
-					if(majulost>=1000 && majuloss<1200){
+					if(majulost>=1000 && majuloss<0){
 						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
+					}else if(majulost>=1000 && majuloss>=0){
 						majulost=0;
 						majuloss=0;
 					}
@@ -1103,10 +1490,11 @@ void lostball_positioning(){
 		if(mainx==KANAN){
 			if(arahRobot<=20 && arahRobot>=11){ // Lepaskan robot dari kanan
 				//16
+				arahTendang=17;
 				initialPosition=10;
-				if(arahRobot>17)motion=11;
+				if(arahRobot>16-serongLost)motion=21;
 				else
-				if(arahRobot<15)motion=12;
+				if(arahRobot<16-serongLost)motion=22;
 				else {
 					if(majulost<1000){
 						motion=20;
@@ -1115,9 +1503,9 @@ void lostball_positioning(){
 						majuloss++;
 					}
 
-					if(majulost>=1000 && majuloss<1200){
+					if(majulost>=1000 && majuloss<0){
 						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
+					}else if(majulost>=1000 && majuloss>=0){
 						majulost=0;
 						majuloss=0;
 					}
@@ -1134,10 +1522,11 @@ void lostball_positioning(){
 			}else 
 			if(arahRobot>=1 && arahRobot<11){ //Lepaskan robot dari kiri
 				//6
+				arahTendang=5;
 				initialPosition=9;
-				if(arahRobot>6)motion=11;
+				if(arahRobot>6-serongLost)motion=21;
 				else
-				if(arahRobot<6)motion=12;
+				if(arahRobot<6-serongLost)motion=22;
 				else {
 					if(majulost<1000){
 						motion=20;
@@ -1146,9 +1535,9 @@ void lostball_positioning(){
 						majuloss++;
 					}
 
-					if(majulost>=1000 && majuloss<1200){
+					if(majulost>=1000 && majuloss<0){
 						motion=10;
-					}else if(majulost>=1000 && majuloss>=1200){
+					}else if(majulost>=1000 && majuloss>=0){
 						majulost=0;
 						majuloss=0;
 					}

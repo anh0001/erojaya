@@ -1,2 +1,0 @@
-bool live
-time time

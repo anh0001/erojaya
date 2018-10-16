@@ -1,0 +1,15 @@
+playbackcontrol action groups do not respon to selection changes signal,
+we solve this by replacing "selected" to "triggered" signal.
+
+example:
+
+connect(
+		sourceGroup, SIGNAL(selected(QAction*)),
+		SLOT(selectSource(QAction*))
+	); 
+replaced with,
+
+connect(
+		sourceGroup, SIGNAL(triggered(QAction*)),
+		SLOT(selectSource(QAction*))
+	);

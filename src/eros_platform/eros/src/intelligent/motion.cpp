@@ -17,64 +17,68 @@
 */
 int GerakHadapBola(int sdtX, int sdtY, int arahrobotskr, int arahhadap){
 	int gerakR = 10;
-	if(sdtY>45){
+	if(sdtY>55){
 		if(arahrobotskr < 20 && arahrobotskr > 13){
-			sdtX = sdtX - (sdtY - 20)/2 ;
+			sdtX = sdtX - (sdtY - 20)/6 ;
 		}else if (arahrobotskr > 2 && arahrobotskr < 9){
-			sdtX = sdtX + (sdtY - 20)/2 ;
+			sdtX = sdtX + (sdtY - 20)/6 ;
 		}
 		gerakR = GerakCoverBall(sdtX,sdtY);
 		//fprintf(stderr, "GCB ");
-	}else if(sdtY>30 && sdtY<=45){
+	}else if(sdtY>25 && sdtY<=55){
+		if(arahrobotskr < 20 && arahrobotskr > 15){
+			sdtX = sdtX - (sdtY - 20)/8 ;
+		}else if (arahrobotskr > 2 && arahrobotskr < 5){
+			sdtX = sdtX + (sdtY - 20)/8 ;
+		}
 		gerakR = GerakCoverBallSlow(sdtX,sdtY);
 		//fprintf(stderr, "GCBS ");
 	}else if(sdtY>=0){
-		if(sdtX>35)	gerakR=26;//26
-		else if(sdtX<-35)	gerakR=25;//25
-		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX > 30)){
-		 	gerakR = 14;
+		if(sdtX>20)	gerakR=12;//26 //(sdtX>35)
+ 		else if(sdtX<-20)	gerakR=11;//25 //(sdtX<-35)
+		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX > 15)){ //(sdtX>30) 
+		 	//gerakR = 14;
+		 	gerakR = 16;
 		}
-		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX < -30)){
-			gerakR = 13;
+		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX < -15)){ //(sdtX<-30)
+			// gerakR = 13;
+			gerakR = 15;
 		}
 		else if(arahhadap>=1 && arahhadap<=10 && arahhadap!=arahrobotskr){
 			if(arahrobotskr > arahhadap && arahrobotskr <= rotasiarah(arahhadap+10)){
 				gerakR = 18; //putar kanan
-				if(sdtX > 15) 	gerakR = 14;
+				if(sdtX > 15) 	gerakR = 16;
 			}else{
 				gerakR = 17; //putar kiri
-				if(sdtX < -15) gerakR = 13;//13
+				if(sdtX < -15) gerakR = 15;//13
 			}
 		}else if(arahhadap>=11 && arahhadap<=20 && arahhadap!=arahrobotskr){
 			if(arahrobotskr >= rotasiarah(arahhadap-10) && arahrobotskr < arahhadap){
 				gerakR = 17;//putar kiri
-				if(sdtX < -15) gerakR = 13;//13
+				if(sdtX < -15) gerakR = 15;//13
 			}else 	{
 				gerakR = 18; //putar kanan		
-				if(sdtX > 15) 	gerakR = 14;
+				if(sdtX > 15) 	gerakR = 16;
 			}
-		}else if(sdtX>15)	gerakR=14;//26
-		else if(sdtX<-15)	gerakR=13;//25
-		else gerakR=10;
+		}else gerakR=10;
 	}else gerakR=10;
 	
 	return gerakR;
 }
-
 int GerakHadapBolaSensitive(int sdtX, int sdtY, int arahrobotskr, int arahhadap){
 	int gerakR = 10;
-	if(sdtY>45) //Bola Jauh
+	if(sdtY>50) //Bola Jauh
 	{
-		if(arahrobotskr < 20 && arahrobotskr > 13)
-		{
-			sdtX = sdtX - (sdtY - 20)/2 ;
-		}
-		else if (arahrobotskr > 2 && arahrobotskr < 9)
-		{
-			sdtX = sdtX + (sdtY - 20)/2 ;
-		}
+		// if(arahrobotskr < 20 && arahrobotskr > 13)
+		// {
+		// 	sdtX = sdtX - (sdtY - 20)/2 ;
+		// }
+		// else if (arahrobotskr > 2 && arahrobotskr < 9)
+		// {
+		// 	sdtX = sdtX + (sdtY - 20)/2 ;
+		// }
 
-		gerakR = GerakCoverBall(sdtX,sdtY);
+		gerakR = GerakCoverBallSlow(sdtX,sdtY);
 		//fprintf(stderr, "GCB ");
 	}
 	else if(arahrobotskr == arahhadap)
@@ -87,7 +91,7 @@ int GerakHadapBolaSensitive(int sdtX, int sdtY, int arahrobotskr, int arahhadap)
 			//fprintf(stderr, "GABL ");
 		}
 	}
-	else if(sdtY>30 && sdtY<=45)
+	else if(sdtY>35 && sdtY<=50)
 	{
 		gerakR = GerakCoverBallSlow(sdtX,sdtY);
 		//fprintf(stderr, "GCBS ");
@@ -98,10 +102,10 @@ int GerakHadapBolaSensitive(int sdtX, int sdtY, int arahrobotskr, int arahhadap)
 		else if(sdtX<-30)	gerakR=25;//25
 		if(sdtX>15)	gerakR=14;
 		else if(sdtX<-15)	gerakR=13;
-		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX >= 15)){
+		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX >= 15)){ 
 		 	gerakR = 14;
 		}
-		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX <= -15)){
+		else if(arahrobotskr >= rotasiarah(arahhadap-1) && arahrobotskr <= rotasiarah(arahhadap+1) && (sdtX <= -15)){ 
 			gerakR = 13;
 		}
 		else if(arahhadap>=1 && arahhadap<=10 && arahhadap!=arahrobotskr){
@@ -190,61 +194,63 @@ int GerakCoverBall(int sdtX, int sdtY){
 	int gerakR;
 	if(sdtY>70){
 		if(sdtX>=66) gerakR=26;
-		else if(sdtX<66  && sdtX>=39) gerakR=12;
-		else if(sdtX<39  && sdtX>=31) gerakR=22;
-		else if(sdtX<31  && sdtX>=15) gerakR=42;
-		else if(sdtX<15  && sdtX>=4)  gerakR=42;
-		else if(sdtX<4 	 && sdtX>=-4) gerakR=40;
-		else if(sdtX<-4  && sdtX>=-15) gerakR=41;
+		else if(sdtX<66  && sdtX>=39)  gerakR=12;
+		else if(sdtX<39  && sdtX>=31)  gerakR=22;
+		else if(sdtX<31  && sdtX>=15)  gerakR=42; 
+		else if(sdtX<15  && sdtX>=10)   gerakR=42; //
+		else if(sdtX<10	 && sdtX>=-10)  gerakR=40; //
+		else if(sdtX<-10  && sdtX>=-15) gerakR=41; //
 		else if(sdtX<-15 && sdtX>=-31) gerakR=41;
 		else if(sdtX<-31 && sdtX>=-39) gerakR=21;
 		else if(sdtX<-39 && sdtX>=-66) gerakR=11;
 		else if(sdtX<-66) gerakR=25;
 	} else if(sdtY>60 && sdtY<=70){
 		if(sdtX>=55) gerakR=26;
-		else if(sdtX<55  && sdtX>=43) gerakR=12;
-		else if(sdtX<43  && sdtX>=31) gerakR=22;
-		else if(sdtX<31  && sdtX>=20) gerakR=32;
-		else if(sdtX<20  && sdtX>=5)  gerakR=42;
-		else if(sdtX<5	 && sdtX>=-5) gerakR=40;
-		else if(sdtX<-5  && sdtX>=-20) gerakR=41;
-		else if(sdtX<-20 && sdtX>=-30) gerakR=31;
-		else if(sdtX<-31 && sdtX>=-43) gerakR=21;
-		else if(sdtX<-43 && sdtX>=-55) gerakR=11;
+		else if(sdtX<55  && sdtX>=43)   gerakR=12;
+		else if(sdtX<43  && sdtX>=31)   gerakR=22;
+		// else if(sdtX<31  && sdtX>=20) gerakR=32;
+		else if(sdtX>=25 && sdtX<31)    gerakR=32;
+		// else if(sdtX<20  && sdtX>=5)  gerakR=42;
+		else if(sdtX>=10 && sdtX<25)    gerakR=42; //
+		else if(sdtX>=-10 && sdtX<10)   gerakR=40; //
+		else if(sdtX<-10  && sdtX>=-25) gerakR=41; //
+		else if(sdtX<-25 && sdtX>=-31)  gerakR=31;
+		else if(sdtX<-31 && sdtX>=-43)  gerakR=21;
+		else if(sdtX<-43 && sdtX>=-55)  gerakR=11;
 		else if(sdtX<-55) gerakR=25;
 	} else if(sdtY>35 && sdtY<=60){
 		if(sdtX>=66) gerakR=26;
-		else if(sdtX<66  && sdtX>=41) gerakR=12;
-		else if(sdtX<41  && sdtX>=33) gerakR=12;
-		else if(sdtX<33  && sdtX>=24) gerakR=22;
-		else if(sdtX<24  && sdtX>=5)  gerakR=32;
-		else if(sdtX<5	 && sdtX>=-5) gerakR=30;
-		else if(sdtX<-5  && sdtX>=-24) gerakR=31;
-		else if(sdtX<-24 && sdtX>=-33) gerakR=21;
-		else if(sdtX<-33 && sdtX>=-41) gerakR=11;
-		else if(sdtX<-41 && sdtX>=-66) gerakR=11;
+		else if(sdtX<66  && sdtX>=41)   gerakR=12;
+		else if(sdtX<41  && sdtX>=33)   gerakR=12;
+		else if(sdtX<33  && sdtX>=24)   gerakR=22;
+		else if(sdtX<24  && sdtX>=10)   gerakR=32; //
+		else if(sdtX<10	 && sdtX>=-10)  gerakR=30; //
+		else if(sdtX<-10  && sdtX>=-24) gerakR=31; //
+		else if(sdtX<-24 && sdtX>=-33)  gerakR=21;
+		else if(sdtX<-33 && sdtX>=-41)  gerakR=11;
+		else if(sdtX<-41 && sdtX>=-66)  gerakR=11;
 		else if(sdtX<-66) gerakR=25;
 	} else if(sdtY>25 && sdtY<=35){
 		if(sdtX>=70) gerakR=26;
-		else if(sdtX<70  && sdtX>=44) gerakR=26;
-		else if(sdtX<44  && sdtX>=36) gerakR=12;
-		else if(sdtX<36  && sdtX>=27) gerakR=14;
-		else if(sdtX<27  && sdtX>=5)  gerakR=24;
-		else if(sdtX<5	 && sdtX>=-5) gerakR=20;
-		else if(sdtX<-5  && sdtX>=-27) gerakR=23;
-		else if(sdtX<-27 && sdtX>=-36) gerakR=13;
-		else if(sdtX<-36 && sdtX>=-44) gerakR=11;
-		else if(sdtX<-44 && sdtX>=-70) gerakR=25;
+		else if(sdtX<70  && sdtX>=44)   gerakR=26;
+		else if(sdtX<44  && sdtX>=38)   gerakR=12;
+		else if(sdtX<38  && sdtX>=27)   gerakR=14;
+		else if(sdtX<27  && sdtX>=5)    gerakR=24;
+		else if(sdtX<5	 && sdtX>=-5)   gerakR=20;
+		else if(sdtX<-5  && sdtX>=-27)  gerakR=23;
+		else if(sdtX<-27 && sdtX>=-38)  gerakR=13;
+		else if(sdtX<-38 && sdtX>=-44)  gerakR=11;
+		else if(sdtX<-44 && sdtX>=-70)  gerakR=25;
 		else if(sdtX<-70) gerakR=25;
 	} else if(sdtY<=25){
 		if(sdtX>=70) gerakR=26;
-		else if(sdtX<70  && sdtX>=35) gerakR=12;
-		else if(sdtX<35  && sdtX>=18) gerakR=16;
-		else if(sdtX<18  && sdtX>=6)  gerakR=14;
-		else if(sdtX<6   && sdtX>=-6) gerakR=10;
-		else if(sdtX<-6  && sdtX>=-18) gerakR=13;
-		else if(sdtX<-18 && sdtX>=-35) gerakR=15;
-		else if(sdtX<-35 && sdtX>=-70) gerakR=11;
+		else if(sdtX<70  && sdtX>=32)  gerakR=12;
+		else if(sdtX<32  && sdtX>=20)  gerakR=16;
+		else if(sdtX<20  && sdtX>=6)   gerakR=14;
+		else if(sdtX<6   && sdtX>=-6)  gerakR=10;
+		else if(sdtX<-6  && sdtX>=-20) gerakR=13;
+		else if(sdtX<-20 && sdtX>=-32) gerakR=15;
+		else if(sdtX<-32 && sdtX>=-70) gerakR=11;
 		else if(sdtX<-70) gerakR=25;
 	}
 	return gerakR;
@@ -325,16 +331,19 @@ int GerakArahBolaLurus(int sdtX, int sdtY){
 		if(sdtY>70){
 			if(sdtX>=35) gerakR=16;
 			else if(sdtX<35  && sdtX>=25)  gerakR=34;
-			else if(sdtX<25  && sdtX>=4)   gerakR=40;
-			else if(sdtX<4   && sdtX>=-4)  gerakR=40;
-			else if(sdtX<-4  && sdtX>=-25) gerakR=40;
+			//else if(sdtX<25  && sdtX>=4)   gerakR=40;
+			//else if(sdtX<4   && sdtX>=-4)  gerakR=40;
+			//else if(sdtX<-4  && sdtX>=-25) gerakR=40;
+			else if(sdtX<25  && sdtX>=4)   gerakR=50;
+			else if(sdtX<4   && sdtX>=-4)  gerakR=50;
+			else if(sdtX<-4  && sdtX>=-25) gerakR=50;
 			else if(sdtX<-25 && sdtX>=-35) gerakR=33;
 			else if(sdtX<-35) gerakR=15;
 		}
 		else if(sdtY>40 && sdtY<=70){
 			if(sdtX>=69) gerakR=19;
 			else if(sdtX<69  && sdtX>=35)  gerakR=16;
-			else if(sdtX<35  && sdtX>=25)   gerakR=24;
+			else if(sdtX<35  && sdtX>=25)  gerakR=24;
 			else if(sdtX<25  && sdtX>=5)   gerakR=34;
 			else if(sdtX<5   && sdtX>=-5)  gerakR=30;
 			else if(sdtX<-5  && sdtX>=-25) gerakR=33;
@@ -372,38 +381,38 @@ int GerakCoverBallSlow(int sdtX, int sdtY){
 		if(sdtX>=66) gerakR=26;
 		else if(sdtX<66  && sdtX>=39) gerakR=12;
 		else if(sdtX<39  && sdtX>=31) gerakR=22;
-		else if(sdtX<31  && sdtX>=22) gerakR=32;
-		else if(sdtX<22  && sdtX>=4)  gerakR=32;
+		else if(sdtX<31  && sdtX>=15) gerakR=32;
+		else if(sdtX<15  && sdtX>=4)  gerakR=32;
 		else if(sdtX<4 	 && sdtX>=-4) gerakR=30;
-		else if(sdtX<-4  && sdtX>=-22) gerakR=31;
-		else if(sdtX<-22 && sdtX>=-31) gerakR=31;
+		else if(sdtX<-4  && sdtX>=-15) gerakR=31;
+		else if(sdtX<-15 && sdtX>=-31) gerakR=31;
 		else if(sdtX<-31 && sdtX>=-39) gerakR=21;
 		else if(sdtX<-39 && sdtX>=-66) gerakR=11;
-		else if(sdtX<-66) gerakR=25;
+		else if(sdtX<-66) gerakR=35;
 	}
-	else if(sdtY>30 && sdtY<=50){
+	else if(sdtY>35 && sdtY<=50){
 		if(sdtX>=70) gerakR=26;
-		else if(sdtX<70  && sdtX>=44) gerakR=12;
-		else if(sdtX<44  && sdtX>=36) gerakR=22;
-		else if(sdtX<36  && sdtX>=27) gerakR=22;
-		else if(sdtX<27  && sdtX>=5)  gerakR=24;
+		else if(sdtX<70  && sdtX>=42) gerakR=12;
+		else if(sdtX<42  && sdtX>=33) gerakR=22;
+		else if(sdtX<33  && sdtX>=24) gerakR=22;
+		else if(sdtX<24  && sdtX>=5)  gerakR=24;
 		else if(sdtX<5	 && sdtX>=-5) gerakR=20;
-		else if(sdtX<-5  && sdtX>=-27) gerakR=23;
-		else if(sdtX<-27 && sdtX>=-36) gerakR=21;
-		else if(sdtX<-36 && sdtX>=-44) gerakR=21;
+		else if(sdtX<-5  && sdtX>=-24) gerakR=23;
+		else if(sdtX<-24 && sdtX>=-33) gerakR=21;
+		else if(sdtX<-33 && sdtX>=-44) gerakR=21;
 		else if(sdtX<-44 && sdtX>=-70) gerakR=11;
-		else if(sdtX<-70) gerakR=25;
+		else if(sdtX<-70) gerakR=35;
 	}
-	else if(sdtY<=30){
+	else if(sdtY<=35){
 		if(sdtX>=70) gerakR=26;
-		else if(sdtX<70  && sdtX>35) gerakR=12;
-		else if(sdtX<35  && sdtX>18) gerakR=16;
-		else if(sdtX<18  && sdtX>7)  gerakR=14;
-		else if(sdtX<=7  && sdtX>=-7) gerakR=10;
-		else if(sdtX<-7  && sdtX>=-18) gerakR=13;
-		else if(sdtX<-18 && sdtX>=-35) gerakR=15;
-		else if(sdtX<-35 && sdtX>=-70) gerakR=11;
-		else if(sdtX<-70) gerakR=25;
+		else if(sdtX<70  && sdtX>=25) gerakR=12;
+		else if(sdtX<25  && sdtX>=12) gerakR=16;
+		else if(sdtX<12  && sdtX>=7)  gerakR=14;
+		else if(sdtX<=7  && sdtX>=-7) gerakR=220;
+		else if(sdtX<-7  && sdtX>=-12) gerakR=13;
+		else if(sdtX<-12 && sdtX>=-25) gerakR=15;
+		else if(sdtX<-25 && sdtX>=-70) gerakR=11;
+		else if(sdtX<-70) gerakR=35;
 	}
 	return gerakR;
 }
@@ -1884,18 +1893,18 @@ int GerakTendangjauhfast(int sdtX, int sdtY)
 	else if (arahRobot==arahLihat && sdtY>50) gerakR = GerakArahBolaLurus(sdtX,sdtY);
 	else
 	{
-		if(sdtY>35) //23
+		if(sdtY>25)
 		{
 			if(sdtX > 40) gerakR = 26;
 			else if(sdtX <-40) gerakR = 25;
 			else if(sdtX > 15) 	gerakR = 14;
 			else if(sdtX <-15) gerakR = 13;
-			else gerakR = 220;
+			else gerakR = 20;
 		}
 		else
 		{
-		if(sdtX > 30) gerakR = 19;
-		else if(sdtX <-30) gerakR = 19;
+		if(sdtX > 30) gerakR = 16;
+		else if(sdtX <-30) gerakR = 15;
 		else if(sdtX > 18) 	gerakR = 14;
 		else if(sdtX <-18) gerakR = 13;
 		else if(sdtX > 6) gerakR = 6;
@@ -2050,23 +2059,23 @@ int GerakEksekusiwide(int dataX, int dataY, int modeeks)
 	else if(dataY<120)
 	{
 		if(dataX<53) gerakR = 23;
-		else if(dataX < 106) gerakR = 13;
-		else if(dataX < 159) gerakR = 13;
-		else if(dataX < 212) gerakR = 13;
-		else if(dataX < 265) gerakR = 20;
-		else if(dataX < 318) gerakR = 20;
-		else if(dataX < 371) gerakR = 14;
-		else if(dataX < 424) gerakR = 14;
+		else if(dataX < 106) gerakR = 15;
+		else if(dataX < 159) gerakR = 15;
+		else if(dataX < 212) gerakR = 15;
+		else if(dataX < 265) gerakR = 220;
+		else if(dataX < 318) gerakR = 220;
+		else if(dataX < 360) gerakR = 16;
+		else if(dataX < 424) gerakR = 16;
 	}
 	else if(dataY<240)
 	{
 		if(dataX<53) gerakR = 15;
-		else if(dataX < 106) gerakR = 13;
-		else if(dataX < 159) gerakR = 5;
-		else if(dataX < 212) gerakR = 13;
-		else if(dataX < 265) gerakR = 13;
-		else if(dataX < 318) gerakR = 6;
-		else if(dataX < 371) gerakR = 14;
+		else if(dataX < 106) gerakR = 15;
+		else if(dataX < 159)gerakR = 5;
+		else if(dataX < 212) gerakR = 15;
+		else if(dataX < 265) gerakR = 15;
+		else if(dataX < 318)gerakR = 6;
+		else if(dataX < 360) gerakR = 16;
 		else if(dataX < 424) gerakR = 16;
 	}
 	
@@ -2082,34 +2091,34 @@ int GerakEksekusiSampingKananwide(int dataX, int dataY, int modeeks)
 
 	else if(dataY<120)
 	{
-		if(dataX<53) gerakR = 13;
-		else if(dataX < 106) gerakR = 13;
-		else if(dataX < 159) gerakR = 13;
-		else if(dataX < 212) gerakR = 13;
-		else if(dataX < 265) gerakR = 20;
-		else if(dataX < 318) gerakR = 20;
-		else if(dataX < 371) gerakR = 14;
-		else if(dataX < 424) gerakR = 14;
+		if(dataX<53) gerakR = 15;
+		else if(dataX < 106) gerakR = 15;
+		else if(dataX < 159) gerakR = 15;
+		else if(dataX < 200) gerakR = 15;
+		else if(dataX < 265) gerakR = 220;
+		else if(dataX < 318) gerakR = 220;
+		else if(dataX < 360) gerakR = 16;
+		else if(dataX < 424) gerakR = 16;
 	}
 	else if(dataY<240)
 	{
-		if(dataX<53) gerakR = 13;
-		else if(dataX < 106) gerakR = 13;
-		else if(dataX < 159) gerakR = 13;
+		if(dataX<53) gerakR = 15;
+		else if(dataX < 106) gerakR = 15;
+		else if(dataX < 159) gerakR = 15;
 		//else if(dataX < 212) gerakR = 7;
 		else if(dataX < 212)
 		{
 		countRest++ ;
-		gerakR = 0;
+		gerakR = 10;
 			if (countRest>100)
 			{	
 			gerakR = 7;	
 			}
 		}
-		else if(dataX < 265) gerakR = 14;
-		else if(dataX < 318) gerakR = 14;
-		else if(dataX < 371) gerakR = 14;
-		else if(dataX < 424) gerakR = 14;
+		else if(dataX < 265) gerakR = 16;
+		else if(dataX < 318) gerakR = 16;
+		else if(dataX < 360) gerakR = 16;
+		else if(dataX < 424) gerakR = 16;
 	}
 	
 	return gerakR;
@@ -2124,34 +2133,34 @@ int GerakEksekusiSampingKiriwide(int dataX, int dataY, int modeeks)
 
 	else if(dataY<120)
 	{
-		if(dataX<53) gerakR = 13;
-		else if(dataX < 106) gerakR = 13;
-		else if(dataX < 159) gerakR = 13;
-		else if(dataX < 212) gerakR = 13;
-		else if(dataX < 265) gerakR = 20;
-		else if(dataX < 318) gerakR = 20;
-		else if(dataX < 371) gerakR = 14;
-		else if(dataX < 424) gerakR = 14;
+		if(dataX<53) gerakR = 15;
+		else if(dataX < 106) gerakR = 15;
+		else if(dataX < 159) gerakR = 15;
+		else if(dataX < 200) gerakR = 15;
+		else if(dataX < 265) gerakR = 220;
+		else if(dataX < 318) gerakR = 220;
+		else if(dataX < 360) gerakR = 16;
+		else if(dataX < 424) gerakR = 16;
 	}
 	else if(dataY<240)
 	{
-		if(dataX<53) gerakR = 13;
-		else if(dataX < 106) gerakR = 13;
-		else if(dataX < 159) gerakR = 13;
-		else if(dataX < 212) gerakR = 13;
+		if(dataX<53) gerakR = 15;
+		else if(dataX < 106) gerakR = 15;
+		else if(dataX < 159) gerakR = 15;
+		else if(dataX < 212) gerakR = 15;
 		//else if(dataX < 265) gerakR = 8;
 		else if(dataX < 265)
 		{
 		countRest++ ;
-		gerakR = 0;
+		gerakR = 10;
 			if (countRest>100)
 			{	
 			gerakR = 8;	
 			}
 		}
-		else if(dataX < 318) gerakR = 14;
-		else if(dataX < 371) gerakR = 14;
-		else if(dataX < 424) gerakR = 14;
+		else if(dataX < 318) gerakR = 16;
+		else if(dataX < 360) gerakR = 16;
+		else if(dataX < 424) gerakR = 16;
 	}
 	
 	return gerakR;

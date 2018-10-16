@@ -1,0 +1,1 @@
+we modify gait.cpp constructor casting MAX_NUM to integer as Eigen3 complaining expecting integer.

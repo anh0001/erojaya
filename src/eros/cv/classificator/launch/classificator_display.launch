@@ -1,0 +1,20 @@
+<launch>
+  <node pkg="nodelet_gui_manager" type="nodelet_gui_manager" name="standalone_nodelet"  args="manager" output="screen"/>
+  
+  <node pkg="nodelet" type="nodelet" name="CameraEROS" args="load usb_cam::UsbCamNodelet standalone_nodelet" output="screen">
+		<param name="video_device" value="/dev/video0" />
+    		<param name="image_width" value="640" />
+    		<param name="image_height" value="480" />
+    		<param name="pixel_format" value="yuyv" />
+    		<param name="camera_frame_id" value="usb_cam" />
+    		<param name="io_method" value="mmap"/>
+		<remap from="/CameraEROS/image_raw" to="/image"/>
+	</node>
+  
+  <node pkg="nodelet" type="nodelet" name="Classificator" args="load Classificator standalone_nodelet" output="screen">
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="Display" args="load DisplayImage standalone_nodelet" output="screen">
+	<remap from="image" to="classes" />
+  </node>
+</launch>

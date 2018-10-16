@@ -1,6 +1,0 @@
-<launch>
-	<arg name="robot_variant" default="eros_hull" />
-
-	<param name="robot_variant" value="$(arg robot_variant)" type="str" />
-	<param name="robot_description" command="$(find xacro)/xacro --inorder $(find nimbro_op_model)/robots/$(arg robot_variant).xacro" />
-</launch>

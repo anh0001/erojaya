@@ -9,10 +9,6 @@
 #include "eheader.h"
 using namespace std;
 
-int xdirect=0,ydirect=0,ydirectpos=0;
-int sdtxmin=1200,sdtxmax=2900,sdtycenter=40;
-int sdtxmin1,sdtxmax1;
-
 void aktifkansearching()
 {
 	enablevision = 0b00001;
@@ -82,10 +78,10 @@ void *ftBall5(void *arg){
 						CountLook = 300;
 					}
 				}
-				ErrFrameX = xBallvision - 320; //212;
+				ErrFrameX = xBallvision - 212;
 				//ErrFrameX = xBallvision - 216 - GeserVision;
 				//ErrFrameX = xBallvision - 160 - GeserVision;
-				ErrFrameY = yBallvision - 240; //120;
+				ErrFrameY = yBallvision - 120;
 				//ErrFrameY = yBallvision - 120;
 
 				if(ErrFrameX <= 2 && ErrFrameX >= -2) ErrFrameX = 0;
@@ -150,10 +146,11 @@ void *ftBall5(void *arg){
 			if(CountTrack>10){
 				if(CountLook>20)CountLook=20;
 				if(xdirect==0 && ydirect==0){ //awal
-					yBall=sdtblamn;
+					yBall=sdtblamx;
 					xBall=sdtxmin;
 					xdirect=1;
-					ydirect=1;
+					ydirect=-1;
+					ydirectpos=2;
 				}else if(xdirect==1){ //nganan
 					if(CountTrack>400){
 						xBall+=Kons[0]-CountLook;
@@ -176,46 +173,12 @@ void *ftBall5(void *arg){
 					}
 				}
 
-				if(flagsudahdekat){
-					if(flagrotasilostball){
-						if(xBall<sdtxmin || xBall>sdtxmax){
-							if(sdtycenter<40)sdtycenter=40;
-							switch(ydirectpos){
-								case 0: yBall=generatesdtY(sdtycenter-30); break;
-								case 1: yBall=generatesdtY(sdtycenter-15); break;
-								case 2: yBall=generatesdtY(sdtycenter); break;
-								case 3: yBall=generatesdtY(sdtycenter+20); break;
-								case 4: yBall=generatesdtY(sdtycenter+40); break;
-							}
-
-							if(ydirect==-1)ydirectpos--;
-							else ydirectpos++;
-
-							if(ydirectpos>4)ydirectpos=0;
-							else if(ydirectpos<0)ydirect=1;
-						}
-					}else{
-						if(xBall<sdtxmin || xBall>sdtxmax){
-							if(sdtycenter<40)sdtycenter=40;
-							switch(ydirectpos){
-								case 0: yBall=generatesdtY(sdtycenter-30); break;
-								case 1: yBall=generatesdtY(sdtycenter-15); break;
-								case 2: yBall=generatesdtY(sdtycenter); break;
-							}
-
-							if(ydirect==-1)ydirectpos--;
-							else ydirectpos++;
-
-							if(ydirectpos>2)ydirectpos=0;
-							else if(ydirectpos<0)ydirect=1;
-						}
-					}
-				}else{
+				if(dtComm==2){
 					if(xBall<sdtxmin || xBall>sdtxmax){
 						if(sdtycenter<40)sdtycenter=40;
 						switch(ydirectpos){
-							case 0: yBall=generatesdtY(sdtycenter-30); break;
-							case 1: yBall=generatesdtY(sdtycenter-15); break;
+							case 0: yBall=generatesdtY(sdtycenter-20); break;
+							case 1: yBall=generatesdtY(sdtycenter-10); break;
 							case 2: yBall=generatesdtY(sdtycenter); break;
 							case 3: yBall=generatesdtY(sdtycenter+20); break;
 							case 4: yBall=generatesdtY(sdtycenter+40); break;
@@ -225,7 +188,58 @@ void *ftBall5(void *arg){
 						else ydirectpos++;
 
 						if(ydirectpos>4)ydirectpos=0;
-						else if(ydirectpos<0)ydirect=1;
+						else if(ydirectpos<=0)ydirect=1;
+					}
+				}else{
+					if(flagsudahdekat){
+						if(flagrotasilostball){
+							if(xBall<sdtxmin || xBall>sdtxmax){
+								if(sdtycenter<40)sdtycenter=40;
+								switch(ydirectpos){
+									case 0: yBall=generatesdtY(sdtycenter); break;
+									case 1: yBall=generatesdtY(sdtycenter+20); break;
+									case 2: yBall=generatesdtY(sdtycenter+40); break;
+								}
+
+								if(ydirect==-1)ydirectpos--;
+								else ydirectpos++;
+
+								if(ydirectpos>2)ydirectpos=0;
+								else if(ydirectpos<=0)ydirect=1;
+							}
+						}else{
+							if(xBall<sdtxmin || xBall>sdtxmax){
+								if(sdtycenter<40)sdtycenter=40;
+								switch(ydirectpos){
+									case 0: yBall=generatesdtY(sdtycenter-30); break;
+									case 1: yBall=generatesdtY(sdtycenter-15); break;
+									case 2: yBall=generatesdtY(sdtycenter); break;
+								}
+
+								if(ydirect==-1)ydirectpos--;
+								else ydirectpos++;
+
+								if(ydirectpos>2)ydirectpos=0;
+								else if(ydirectpos<=0)ydirect=1;
+							}
+						}
+					}else{
+						if(xBall<sdtxmin || xBall>sdtxmax){
+							if(sdtycenter<40)sdtycenter=40;
+							switch(ydirectpos){
+								case 0: yBall=generatesdtY(sdtycenter); break;
+								case 1: yBall=generatesdtY(sdtycenter+20); break;
+								case 2: yBall=generatesdtY(sdtycenter+40); break;
+								//case 3: yBall=generatesdtY(sdtycenter+20); break;
+								//case 4: yBall=generatesdtY(sdtycenter+40); break;
+							}
+
+							if(ydirect==-1)ydirectpos--;
+							else ydirectpos++;
+
+							if(ydirectpos>2)ydirectpos=0;
+							else if(ydirectpos<=0)ydirect=1;
+						}
 					}
 				}
 				usleep(3000);

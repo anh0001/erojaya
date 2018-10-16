@@ -1,4 +1,0 @@
-include MX.device
-
-model 0x001D
-name MX28

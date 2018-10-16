@@ -1,0 +1,10 @@
+<launch>
+	<node pkg="nodelet" type="nodelet" name="camerav4l2" args="standalone CameraV4L2" output="screen">
+		<param name="device" value="/dev/video0" />
+		<param name="width" value="640" />
+		<param name="height" value="480" />
+		<param name="pixel_format" value="yuyv" />
+		<param name="configFile" value="$(find camera_v4l2)/launch/cam_settings.yaml" />
+		<rosparam command="load" file="$(find camera_v4l2)/launch/cam_params.yaml" />
+	</node>
+</launch>

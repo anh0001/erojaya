@@ -1,7 +1,0 @@
-<library path="lib/libgait">
-	<class type="gait::Gait" base_class_type="robotcontrol::MotionModule">
-		<description>
-			Generic gait motion module
-		</description>
-	</class>
-</library>

@@ -1,1 +1,0 @@
-[2018-02-14@anhar] Missing plugin in rqt gui. The solution is to run rqt --force-discover in terminal.

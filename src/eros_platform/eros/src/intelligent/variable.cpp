@@ -8,7 +8,18 @@
 
 int tim,player;
 int initialPosition;
+int arahInitial;
 float vPos;
+int BUFFERTENDANG_CONST;
+
+//Hitung Bola
+int countlookbola;
+
+//Thread
+int xdirect=0,ydirect=0,ydirectpos=0;
+int sdtxmin=1200,sdtxmax=2900,sdtycenter=40;
+int sdtxmin1,sdtxmax1;
+
 
 /* ============== Data Kalibrasi ============== */
 int Cmps[8],GeserCMPS,PutarCMPS;								// Kalibrasi Kompas
@@ -36,7 +47,7 @@ int penalty;
 int myTask,myTask2; 													// From Referee
 int dtComm, lastDtComm;											// From Server
 int fdGrk;														// SerialComm Arm
-int dtflagsama;
+int dtflagsama,catchflagsama;
 
 /* =============== Data Compass =============== */
 int myGcol;														// Gawang
@@ -69,7 +80,7 @@ int servoXG, GoalXservoG, lastskel;
 
 
 /* ============= Variable Strategi ============ */
-bool flagStrategi;
+bool flagStrategi, flagKickOff;
 int Strategiserang;
 int dtJob, dataTm;												// State
 int countKick, hadapGawang;										// Counter
@@ -77,6 +88,8 @@ int flagserong;													// Flag
 int mode, ModeKickOFF, play;
 int dtComm2;
 int stserang,stkickoff;
+bool flagPuterKO;
+bool firstHit;
 
 /* ============= Variable Serial ============ */
 int ttySC;
@@ -105,27 +118,30 @@ unsigned char pilihstrategi, piliheksekusi, arahtembak, eksekusitembak;
 //TaktikNggiring3
 bool flagStopDribble;
 int batasGiringY;
+int takeMotion;
 
 int lostball_arahx;
-
+int bufferTendang,bufferTendangMax;
 //PositionGenerator
 bool flagcounterpos2;
 
 //8 ----
-bool flaginposition,mainx;
+bool flaginposition;
+int mainx;
 
 //TaktikEksekusi
 int kakiTendang;
 
+int serongLost;
 
 int step, laststep,laststep2, nextstep, stepH, stepTB, stepE, stepFD, stepG, stepT,stepK,langkah,stepBuffer;			// Step
 int countGawang, hitungtendangkecil, cariGawangOut,countjalan;		// Counter
 int	cariGawang, countDribb, countDribbChange, countTrackG, countLookG;
-int CountSafeBall, countGW, countertimeout,countLihatblg, countLihat,counterTerobos;	// Counter
+int CountSafeBall, countGW, countertimeout,countLihatblg, countLihat,counterTerobos,counterNyaduk;	// Counter
 int flagPutar, flagYG, Objectlock, Kick, cekTdgSkaa, okTdg;			// Flag
 int sdtGWX, sdtkplX, Tiang, lihatGoal, sdtKicking, lastsdtGWX;
 int setArahRobot, arahGWX2, posRobot, posGR, arahGwng, arahdir;
-int SafeBall, posCuri, flagCuri, flagRebut, countRebut, countRest, flagCuri2, arahTerobos;
+int SafeBall, posCuri, flagCuri, flagRebut, countRebut, countRest, flagCuri2, arahTerobos, count10kebola, flagNyaduk1, flagNyaduk2;
 int kaki, sudutTendang, sumsdtKick, sdtKick, skelTdg,kakie, lastKick, araheksekusi;
 int Tbolax, Tbolay;
 bool flagsudahdekat,flagrotasilostball;
@@ -173,9 +189,6 @@ std_msgs::Int32MultiArray dtaPublishREC;
 std_msgs::Int32MultiArray dtaPublishSERIAL;
 std_msgs::Int32MultiArray dtaPublishVISION;
 std_msgs::Int32MultiArray dtaPublishDEBUG;
-std_msgs::Float32 HeadingRad;
-//std_msgs::Float64 pitchK,yawK;
-
 
 unsigned char it=0,ready=0,cM=0,ceksum=0,ceksum2;
 unsigned char buff[24],countz=0;
@@ -185,7 +198,7 @@ int k=0;
 bool flagLocalize,resetOdometry;
 float getPosition,relativePosition0,relativePosition1,relativePosition2;
 int arahTendang;
-bool debug_mode;
+bool debug_mode,diving_mode;
 char debug_print[500];
 int posDir;
 

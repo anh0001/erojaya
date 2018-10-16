@@ -1,0 +1,21 @@
+<launch>
+	<node pkg="nodelet" type="nodelet" name="vision"  args="manager" output="screen" respawn="true" />
+	
+	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    		<remap from="/usb_cam/image_raw" to="image"/>
+    		<param name="video_device" value="/dev/video0" />
+    		<param name="image_width" value="320" />
+    		<param name="image_height" value="240" />
+    		<param name="pixel_format" value="yuyv" />
+    		<param name="camera_frame_id" value="frame_id" />
+    		<param name="io_method" value="mmap"/>
+  	</node>
+  	<!-- Image viewer	
+	<node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
+    		<param name="autosize" value="true" />
+  	</node>
+	-->
+
+	<node pkg="ball_perceptor" type="detectball_gui" name="balldetection" output="screen" respawn="true" />
+
+</launch>

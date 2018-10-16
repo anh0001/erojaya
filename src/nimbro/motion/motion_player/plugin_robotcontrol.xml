@@ -1,7 +1,0 @@
-<library path="lib/libmotion_player">
-	<class type="motionplayer::MotionPlayer" base_class_type="robotcontrol::MotionModule">
-		<description>
-			Motion player library
-		</description>
-	</class>
-</library>

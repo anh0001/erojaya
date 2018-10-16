@@ -1,4 +1,0 @@
-include generic.device
-
-model 0x4201
-name USB2AX
