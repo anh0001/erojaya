@@ -1,0 +1,1 @@
+catkin build vision_module -G"Eclipse CDT4 - Unix Makefiles"
