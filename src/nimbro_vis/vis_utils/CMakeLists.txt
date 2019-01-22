@@ -55,15 +55,15 @@ target_link_libraries(marker_manager_test_node
 ###############
 
 ## Build the marker_manager unit test
-add_rostest_gtest(marker_manager_test
-	test/marker_manager_test.test
-	test/marker_manager_test.cpp
-)
-target_link_libraries(marker_manager_test
-	marker_manager
-	${catkin_LIBRARIES}
-	${GTEST_LIBRARIES}
-)
+#add_rostest_gtest(marker_manager_test
+#	test/marker_manager_test.test
+#	test/marker_manager_test.cpp
+#)
+#target_link_libraries(marker_manager_test
+#	marker_manager
+#	${catkin_LIBRARIES}
+#	${GTEST_LIBRARIES}
+#)
 
 #############
 ## Install ##

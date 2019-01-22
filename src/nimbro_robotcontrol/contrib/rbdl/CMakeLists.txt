@@ -68,11 +68,11 @@ install(DIRECTORY include/${PROJECT_NAME}/
 configure_file(test/test_config.h.in test/test_config.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/test)
 
-catkin_add_gtest(test_rbdl_parser
-	test/test_rbdl_parser.cpp
-)
-target_link_libraries(test_rbdl_parser
-	${catkin_LIBRARIES}
-	rbdl_ros
-	rbdl
-)
+#catkin_add_gtest(test_rbdl_parser
+#	test/test_rbdl_parser.cpp
+#)
+#target_link_libraries(test_rbdl_parser
+#	${catkin_LIBRARIES}
+#	rbdl_ros
+#	rbdl
+#)

@@ -57,14 +57,14 @@ target_link_libraries(rot_conv_sample
 ################
 
 ## Rotation conversions test
-catkin_add_gtest(test_rot_conv
-	test/test_rot_conv.cpp
-)
-target_link_libraries(test_rot_conv
-	rot_conv
-	${catkin_LIBRARIES}
-	${GTEST_LIBRARIES}
-)
+#catkin_add_gtest(test_rot_conv
+#	test/test_rot_conv.cpp
+#)
+#target_link_libraries(test_rot_conv
+#	rot_conv
+#	${catkin_LIBRARIES}
+#	${GTEST_LIBRARIES}
+#)
 
 #############
 ## Install ##

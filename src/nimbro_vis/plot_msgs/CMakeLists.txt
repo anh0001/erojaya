@@ -39,15 +39,15 @@ include_directories(include
 	${catkin_INCLUDE_DIRS}
 )
 
-add_rostest_gtest(plot_manager_test
-	test/plot_manager_test.test
-	test/plot_manager_test.cpp
-)
-target_link_libraries(plot_manager_test
-	${catkin_LIBRARIES}
-	${GTEST_LIBRARIES}
-)
-add_dependencies(plot_manager_test plot_msgs_gencpp)
+#add_rostest_gtest(plot_manager_test
+#	test/plot_manager_test.test
+#	test/plot_manager_test.cpp
+#)
+#target_link_libraries(plot_manager_test
+#	${catkin_LIBRARIES}
+#	${GTEST_LIBRARIES}
+#)
+#add_dependencies(plot_manager_test plot_msgs_gencpp)
 
 ## Mark cpp header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/
