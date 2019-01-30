@@ -748,7 +748,7 @@ int CM730::syncWrite(int address, size_t numDataBytes, size_t numDevices, const 
 	return txPacket(txp);
 }
 
-// Set the dyamixel power state of the CM730
+// Set the dynamixel power state of the CM730
 int CM730::setDynamixelPower(int value)
 {
 	// Error checking

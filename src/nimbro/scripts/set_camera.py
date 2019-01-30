@@ -23,48 +23,39 @@ def updateCamera():
         print colored("Cannot config webcam. Please check dependencies.","red")
         sys.exit()
         
-    with open("/tmp/logitechConfig.txt", "w") as fw:
+    with open("/tmp/microsoftLifecamConfig.txt", "w") as fw:
         fw.write("""9963776:                     Brightness:128
 9963777:                       Contrast:32
 9963778:                     Saturation:28
 9963788:White Balance Temperature, Auto:0
-9963795:                           Gain:190
 9963800:           Power Line Frequency:2
 9963802:      White Balance Temperature:0
 9963803:                      Sharpness:191
 9963804:         Backlight Compensation:1
 10094849:                 Exposure, Auto:1
 10094850:            Exposure (Absolute):700
-10094851:        Exposure, Auto Priority:0
 10094856:                 Pan (Absolute):0
 10094857:                Tilt (Absolute):0
-168062213:                      LED1 Mode:2
-168062214:                 LED1 Frequency:255
-168062321:       Disable video processing:0
-168062322:             Raw bits per pixel:0
-""")    
-    
-    with open("/tmp/logitechConfig_off.txt", "w") as fw:
-        fw.write("""9963776:                     Brightness:128
-9963777:                       Contrast:32
-9963778:                     Saturation:28
-9963788:White Balance Temperature, Auto:0
-9963795:                           Gain:190
-9963800:           Power Line Frequency:2
-9963802:      White Balance Temperature:0
-9963803:                      Sharpness:191
-9963804:         Backlight Compensation:1
-10094849:                 Exposure, Auto:1
-10094850:            Exposure (Absolute):700
-10094851:        Exposure, Auto Priority:0
-10094856:                 Pan (Absolute):0
-10094857:                Tilt (Absolute):0
-168062213:                      LED1 Mode:0
-168062214:                 LED1 Frequency:1
-168062321:       Disable video processing:0
-168062322:             Raw bits per pixel:0
+10094860:                    Focus, Auto:1
+10094861:                 Zoom, Absolute:0
 """)
-    
+
+    with open("/tmp/microsoftLifecamConfig_off.txt", "w") as fw:
+        fw.write("""9963776:                     Brightness:128
+9963777:                       Contrast:32
+9963778:                     Saturation:28
+9963788:White Balance Temperature, Auto:0
+9963800:           Power Line Frequency:2
+9963802:      White Balance Temperature:0
+9963803:                      Sharpness:191
+9963804:         Backlight Compensation:1
+10094849:                 Exposure, Auto:1
+10094850:            Exposure (Absolute):700
+10094856:                 Pan (Absolute):0
+10094857:                Tilt (Absolute):0
+10094860:                    Focus, Auto:1
+10094861:                 Zoom, Absolute:0
+""")
 
     result = subprocess.check_output("sudo ls /dev/video*", shell=True)
 
@@ -72,7 +63,7 @@ def updateCamera():
     for line in result.split(os.linesep):
         numberDev = line.replace("/dev/video", "")
         if(numberDev.isdigit()):
-            os.system("v4l2ctrl -d /dev/video"+numberDev+" -l /tmp/logitechConfig_off.txt > /dev/null 2>&1")
+            os.system("v4l2ctrl -d /dev/video"+numberDev+" -l /tmp/microsoftLifecamConfig_off.txt > /dev/null 2>&1")
             devCount=devCount+1
     
     if(devCount==0):
@@ -89,7 +80,7 @@ def updateCamera():
         numberDev = line.replace("/dev/video", "")
         
         if(numberDev.isdigit()):
-            os.system("v4l2ctrl -d /dev/video"+numberDev+" -l /tmp/logitechConfig.txt > /dev/null 2>&1")
+            os.system("v4l2ctrl -d /dev/video"+numberDev+" -l /tmp/microsoftLifecamConfig.txt > /dev/null 2>&1")
             inputStr=raw_input("%s (r/l/N) " % ("Is it right eye or left eye or None? (dev="+numberDev+")")).lower()
             selectRight=False
             selectLeft=False
@@ -106,13 +97,13 @@ def updateCamera():
             itWasSuccessfull=False
             for line in result.split(os.linesep):
                 serial = getCol("ATTRS{serial}=", line)
-                if len(serial)==8:
-                    toSaverule='SUBSYSTEM=="video4linux", SUBSYSTEMS=="usb", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="080a", ATTRS{serial}=="'+serial+'", SYMLINK+="eye'+("Right" if selectRight else "Left")+'"'
+                if len(serial)==12:
+                    toSaverule='SUBSYSTEM=="video4linux", SUBSYSTEMS=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="075d", SYMLINK+="eye'+("Right" if selectRight else "Left")+'"'
                     data.append(serial)
                     print "Webcam"+numberDev+" Serial = "+  serial
-                    with open("/etc/udev/rules.d/"+("25" if selectRight else "26")+"-C905-webcam.rules", "w") as fw:
+                    with open("/etc/udev/rules.d/"+("25" if selectRight else "26")+"-microsoft-cinema-webcam.rules", "w") as fw:
                         fw.write(toSaverule)
-                    with open("/etc/udev/rules.d/"+("25" if selectRight else "26")+"-C905-webcam.rules", "r") as fr:
+                    with open("/etc/udev/rules.d/"+("25" if selectRight else "26")+"-microsoft-cinema-webcam.rules", "r") as fr:
                         rule=fr.read()
                         if(rule ==toSaverule):
                             print colored("  -> Webcam "+numberDev+" as eye"+("Right" if selectRight else "Left")+" Done.","green")
@@ -121,12 +112,12 @@ def updateCamera():
                             print colored("Can not update device rules: eye"+("Right" if selectRight else "Left"),"red")
                             sys.exit()
             if(not itWasSuccessfull):
-                print colored("Can not update device rules (Was it a logitech?): eye"+("Right" if selectRight else "Left"),"red") 
+                print colored("Can not update device rules (Was it a microsoft cinema?): eye"+("Right" if selectRight else "Left"),"red") 
                             
     for line in result.split(os.linesep):
         numberDev = line.replace("/dev/video", "")
         if(numberDev.isdigit()):
-            os.system("v4l2ctrl -d /dev/video"+numberDev+" -l /tmp/logitechConfig_off.txt > /dev/null 2>&1")        
+            os.system("v4l2ctrl -d /dev/video"+numberDev+" -l /tmp/microsoftLifecamConfig_off.txt > /dev/null 2>&1")        
 
 if __name__ == '__main__':
     if not os.geteuid()==0:
