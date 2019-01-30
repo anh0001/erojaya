@@ -13,16 +13,16 @@ def getCol(col, line):
     return line[p2+1:p3]
     
 def updateCm7X0():
-    print " -> Update device rules: cm730..."  
+    print " -> Update device rules: usb2dyna..."  
     result = subprocess.check_output("sudo udevadm info -a -n /dev/ttyUSB0 | grep ATTRS{serial}", shell=True)
     data=[]
     toSavetty=""
     for line in result.split(os.linesep):
         serial = getCol("ATTRS{serial}=", line)
         if len(serial)==8 and "A" in serial:
-            toSavetty='SUBSYSTEMS=="usb", ENV{ID_SERIAL}=="FTDI_FT232R_USB_UART_'+serial+'", SYMLINK+="cm730", MODE="0666", OWNER="nimbro"'
+            toSavetty='SUBSYSTEMS=="usb", ENV{ID_SERIAL}=="FTDI_FT232R_USB_UART_'+serial+'", SYMLINK+="usb2dyna", MODE="0666", OWNER="nimbro"'
             data.append(serial)
-            print "CM730 Serial = "+serial
+            print "usb2dynamixel Serial = "+serial
         
     if len(data) > 1 :
         print colored("It seems that you have more than one ttyUSB! Please check it.","red")
@@ -31,14 +31,14 @@ def updateCm7X0():
         print colored("It seems that you have no ttyUSB! Please check it.","red")
         sys.exit()
     os.system("sudo rm /etc/udev/rules.d/90-* > /dev/null 2>&1")
-    with open("/etc/udev/rules.d/90-cm730.rules","w") as fw:
+    with open("/etc/udev/rules.d/90-usb2dyna.rules","w") as fw:
         fw.write(toSavetty)
-    with open("/etc/udev/rules.d/90-cm730.rules","r") as fr:
+    with open("/etc/udev/rules.d/90-usb2dyna.rules","r") as fr:
         rule=fr.read()
         if(rule ==toSavetty):
             print colored("  -> Done.","green")
         else:
-            print colored("Can not update device rules: cm730.","red")
+            print colored("Can not update device rules: usb2dyna.","red")
             sys.exit()   
 
 if __name__ == '__main__':

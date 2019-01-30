@@ -5,7 +5,7 @@
 // Comment: This file is suitable for CM730 firmware versions of 0x81 and above (NimbRo-OP specific).
 
 // Includes - Local
-#include <cm730/CM730.h>
+#include <usb2dyna/CM730.h>
 
 // Includes - System
 #include <errno.h>

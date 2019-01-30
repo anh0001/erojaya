@@ -3,7 +3,7 @@ project(nimbro_op_interface)
 
 add_definitions(-std=c++11)
 
-find_package(catkin REQUIRED COMPONENTS roscpp robotcontrol cm730 servomodel plot_msgs rot_conv rc_utils message_generation rrlogger std_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp robotcontrol usb2dyna servomodel plot_msgs rot_conv rc_utils message_generation rrlogger std_msgs)
 
 include_directories(include
 	${catkin_INCLUDE_DIRS}

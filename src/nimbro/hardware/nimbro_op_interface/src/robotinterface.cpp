@@ -17,7 +17,7 @@
 #include <robotcontrol/robotcontrol.h>
 
 // Includes - Packages
-#include <cm730/dynamixel.h>
+#include <usb2dyna/dynamixel.h>
 #include <rot_conv/rot_conv.h>
 #include <rc_utils/ros_time.h>
 #include <rc_utils/slopelimited.h>

@@ -10,6 +10,5 @@
 10094850:            Exposure (Absolute):156
 10094856:                 Pan (Absolute):0
 10094857:                Tilt (Absolute):0
-10094858:               Focus (absolute):0
-10094860:                    Focus, Auto:0
+10094860:                    Focus, Auto:1
 10094861:                 Zoom, Absolute:0

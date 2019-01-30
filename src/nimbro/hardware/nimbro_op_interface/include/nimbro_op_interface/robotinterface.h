@@ -34,7 +34,7 @@
 #include <plot_msgs/plot_manager.h>
 #include <ros/service_server.h>
 #include <std_srvs/Empty.h>
-#include <cm730/CM730.h>
+#include <usb2dyna/CM730.h>
 #include <ros/timer.h>
 
 // Class forward declarations
