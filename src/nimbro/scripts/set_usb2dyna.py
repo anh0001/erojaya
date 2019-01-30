@@ -12,8 +12,9 @@ def getCol(col, line):
     p3 = line.find('"',p2+1)
     return line[p2+1:p3]
     
-def updateCm7X0():
-    print " -> Update device rules: usb2dyna..."  
+def updateUsb2dyna():
+    print " -> Update device rules: usb2dyna..."
+    print "it is assumed usb2dynamixel is connected to /dev/ttyUSB0"
     result = subprocess.check_output("sudo udevadm info -a -n /dev/ttyUSB0 | grep ATTRS{serial}", shell=True)
     data=[]
     toSavetty=""
@@ -48,7 +49,7 @@ if __name__ == '__main__':
         
     print "----------Start------------"
     
-    updateCm7X0()
+    updateUsb2dyna()
  
     print "----------Finish-----------"
     exit()
