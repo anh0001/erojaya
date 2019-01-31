@@ -456,11 +456,11 @@ nimbro_op_interface:
   DXLJoint:
     joints:
       head_pitch:
-        enabled: 0
-        id: 20
+        enabled: 1
+        id: 19
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       left_ankle_pitch:
         enabled: 0
         id: 16
@@ -502,7 +502,7 @@ nimbro_op_interface:
         id: 14
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       left_shoulder_pitch:
         enabled: 0
         id: 2
@@ -516,11 +516,11 @@ nimbro_op_interface:
         readFeedback: 1
         type: MX-106
       neck_yaw:
-        enabled: 0
-        id: 19
+        enabled: 1
+        id: 20
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       right_ankle_pitch:
         enabled: 0
         id: 15
