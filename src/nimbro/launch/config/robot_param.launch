@@ -1,7 +1,7 @@
 <launch>
-    <arg name="robot_name" default="$(env NIMBRO_ROBOT_NAME)" />
-    <arg name="robot_type" default="$(env NIMBRO_ROBOT_TYPE)" />
-    <arg name="robot_variant" default="$(env NIMBRO_ROBOT_VARIANT)" />
+	<arg name="robot_name" default="xs0" />
+    <arg name="robot_type" default="P1" />
+    <arg name="robot_variant" default="eros_hull" />
 
     <param name="robot_name" value="$(arg robot_name)" type="str" />
     <param name="robot_type" value="$(arg robot_type)" type="str" />

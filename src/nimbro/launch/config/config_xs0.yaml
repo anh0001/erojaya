@@ -724,6 +724,22 @@ nimbro_op_interface:
       stribeckTwo: 0.0250731405677264
       ticksPerRev: 4096
       viscuous: 0.553952330165401
+    MX-28:
+      km: 0.2
+      maxTickValue: 4095
+      minTickValue: 0
+      stribeckOne: 0
+      stribeckTwo: 0
+      ticksPerRev: 4096
+      viscuous: 0.5
+    MX-64:
+      km: 0.2
+      maxTickValue: 4095
+      minTickValue: 0
+      stribeckOne: 0
+      stribeckTwo: 0
+      ticksPerRev: 4096
+      viscuous: 0.5
   plotData: 0
   rawStateSlopeLimit: 0.02
   showButtonPresses: 0
@@ -815,7 +831,7 @@ robotcontrol:
       velocityMode: 0
   pause: 0
   plotRobotControlData: 0
-  publishCommand: 1
+  publishCommand: 0
   robotModel:
     egoRotIncludesHeading: 1
     headingIsFusedYaw: 1
