@@ -466,37 +466,37 @@ nimbro_op_interface:
         id: 16
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       left_ankle_roll:
         enabled: 0
         id: 18
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       left_elbow_pitch:
         enabled: 0
         id: 6
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       left_hip_pitch:
         enabled: 0
         id: 12
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       left_hip_roll:
         enabled: 0
         id: 10
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       left_hip_yaw:
         enabled: 0
         id: 8
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       left_knee_pitch:
         enabled: 0
         id: 14
@@ -508,13 +508,13 @@ nimbro_op_interface:
         id: 2
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       left_shoulder_roll:
         enabled: 0
         id: 4
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       neck_yaw:
         enabled: 1
         id: 20
@@ -526,55 +526,55 @@ nimbro_op_interface:
         id: 15
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       right_ankle_roll:
         enabled: 0
         id: 17
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       right_elbow_pitch:
         enabled: 0
         id: 5
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       right_hip_pitch:
         enabled: 0
         id: 11
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       right_hip_roll:
         enabled: 0
         id: 9
         invert: 0
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       right_hip_yaw:
         enabled: 0
         id: 7
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       right_knee_pitch:
         enabled: 0
         id: 13
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-64
       right_shoulder_pitch:
         enabled: 0
-        id: 101
+        id: 1
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
       right_shoulder_roll:
         enabled: 0
         id: 3
         invert: 1
         readFeedback: 1
-        type: MX-106
+        type: MX-28
     offsets:
       head_pitch: 2048
       left_ankle_pitch: 2048
