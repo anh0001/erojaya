@@ -17,7 +17,6 @@
 
 #include <XmlRpcValue.h>
 
-#if 0
 #if defined(__i386__)
 #define __NR_ioprio_set         289
 #define __NR_ioprio_get         290
@@ -35,6 +34,9 @@
 #endif
 
 #define IOPRIO_CLASS_SHIFT      13
+
+// Namespaces
+using namespace robotcontrol;
 
 static inline int ioprio_set(int which, int who, int ioprio)
 {
@@ -58,10 +60,6 @@ enum {
         IOPRIO_WHO_PGRP,
         IOPRIO_WHO_USER,
 };
-#endif
-
-// Namespaces
-using namespace robotcontrol;
 
 // Constants
 const std::string RobotControl::CONFIG_PARAM_PATH = "/robotcontrol/";
@@ -73,15 +71,15 @@ RobotControl::RobotControl()
  , m_pluginLoader("robotcontrol", "robotcontrol::MotionModule")
  , m_robotModel(this)
  , m_pub_js_counter(0)
- // , m_fadeTorqueServer(m_nh, "fade_torque", false)
- // , m_fadeTorqueState(0)
- // , m_newFadeTorqueGoal(false)
- , m_velLimit(CONFIG_PARAM_PATH + "jointVelLimit", 0.0, 0.05, 25.0, 0.5)
- , m_accLimit(CONFIG_PARAM_PATH + "jointAccLimit", 0.0, 0.05, 25.0, 0.5)
+ , m_fadeTorqueServer(m_nh, "fade_torque", false)
+ , m_fadeTorqueState(0)
+ , m_newFadeTorqueGoal(false)
+ , m_velLimit(CONFIG_PARAM_PATH + "jointVelLimit", 0, 0.05, 25.0, 0.5)
+ , m_accLimit(CONFIG_PARAM_PATH + "jointAccLimit", 0, 0.05, 25.0, 0.5)
  , m_publishCommand(CONFIG_PARAM_PATH + "publishCommand", false)
- , m_plotRobotControlData(CONFIG_PARAM_PATH + "plotRobotControlData", false)
- // , m_fadeInMaxDelta(CONFIG_PARAM_PATH + "fadeInMaxDelta", 0, 0.0001, 1.0, 0.005)
+ , m_fadeInMaxDelta(CONFIG_PARAM_PATH + "fadeInMaxDelta", 0, 0.0001, 1.0, 0.005)
  , m_PM(PM_COUNT, "~")
+ , m_plotRobotControlData(CONFIG_PARAM_PATH + "plotRobotControlData", false)
 {
 	// Retrieve a node handle
 	ros::NodeHandle nhs;
@@ -101,8 +99,8 @@ RobotControl::RobotControl()
 	m_diagnosticsTimer = m_nh.createTimer(ros::Duration(1.0), &RobotControl::sendDiagnostics, this);
 	m_diagnosticsTimer.start();
 
-	// // Start handling fade in/out requests
-	// m_fadeTorqueServer.start();
+	// Start handling fade in/out requests
+	m_fadeTorqueServer.start();
 
 	// We want to be notified if the joint limits change
 	m_velLimit.setCallback(boost::bind(&RobotControl::handleVelLimitUpdate, this, _1));
@@ -140,10 +138,9 @@ void RobotControl::deinit()
 	// Deinitialise the hardware interface
 	m_hw->deinit();
 
-	// // Shut down the fade torque server
-	// m_fadeTorqueServer.shutdown();
+	// Shut down the fade torque server
+	m_fadeTorqueServer.shutdown();
 }
-
 
 /**
  * The enabled modules are described in a "motion_modules"
@@ -230,7 +227,6 @@ bool RobotControl::initModules()
 	return true;
 }
 
-
 /**
  * Initializes the hardware interface, the robot model and the motion modules.
  *
@@ -314,7 +310,7 @@ bool RobotControl::init()
 	if(initRelaxed)
 	{
 		m_hw->setStiffness(0.0);
-		// m_fadeTorqueState = 0.0; // Initialise the internal fade torque server state
+		m_fadeTorqueState = 0.0; // Initialise the internal fade torque server state
 		m_robotModel.setState(m_state_relaxed); // Set the robot state to relaxed
 	}
 
@@ -345,76 +341,76 @@ bool RobotControl::init()
 	return true;
 }
 
-// void RobotControl::handleFadeTorque()
-// {
-// 	int over = 0;
-// 	const float MAX_DELTA = m_fadeInMaxDelta(); // If the robotcontrol cycle time is dT then the fade in takes dT/MAX_DELTA seconds to complete
-// 	float diff = m_fadeTorqueGoal->torque - m_fadeTorqueState;
-// 	if(diff > MAX_DELTA)
-// 		diff = MAX_DELTA;
-// 	else if(diff < -MAX_DELTA)
-// 		diff = -MAX_DELTA;
+void RobotControl::handleFadeTorque()
+{
+	int over = 0;
+	const float MAX_DELTA = m_fadeInMaxDelta(); // If the robotcontrol cycle time is dT then the fade in takes dT/MAX_DELTA seconds to complete
+	float diff = m_fadeTorqueGoal->torque - m_fadeTorqueState;
+	if(diff > MAX_DELTA)
+		diff = MAX_DELTA;
+	else if(diff < -MAX_DELTA)
+		diff = -MAX_DELTA;
 
-// 	if(diff > 0)
-// 	{
-// 		// Check if all MotionModules agree that fading in is safe
-// 		for(unsigned int i = 0; i < m_modules.size(); ++i)
-// 		{
-// 			if(!m_modules[i]->isSafeToFadeIn())
-// 			{
-// 				ROS_WARN("Motion module '%s' is preventing us from fading in...", m_modules[i]->name().c_str());
+	if(diff > 0)
+	{
+		// Check if all MotionModules agree that fading in is safe
+		for(unsigned int i = 0; i < m_modules.size(); ++i)
+		{
+			if(!m_modules[i]->isSafeToFadeIn())
+			{
+				ROS_WARN("Motion module '%s' is preventing us from fading in...", m_modules[i]->name().c_str());
 
-// 				FadeTorqueResult res;
-// 				res.torque = m_fadeTorqueState;
-// 				m_fadeTorqueServer.setAborted(res);
-// 				m_newFadeTorqueGoal = false;
-// 				return;
-// 			}
-// 		}
-// 	}
+				FadeTorqueResult res;
+				res.torque = m_fadeTorqueState;
+				m_fadeTorqueServer.setAborted(res);
+				m_newFadeTorqueGoal = false;
+				return;
+			}
+		}
+	}
 
-// 	if(fabs(diff) < 0.001)
-// 	{
-// 		m_fadeTorqueState = m_fadeTorqueGoal->torque;
-// 		FadeTorqueResult res;
-// 		res.torque = m_fadeTorqueState;
-// 		m_fadeTorqueServer.setSucceeded(res);
+	if(fabs(diff) < 0.001)
+	{
+		m_fadeTorqueState = m_fadeTorqueGoal->torque;
+		FadeTorqueResult res;
+		res.torque = m_fadeTorqueState;
+		m_fadeTorqueServer.setSucceeded(res);
 
-// 		if(m_fadeTorqueState > 0.5)
-// 		{
-// 			if(m_robotModel.state() == m_state_relaxed)
-// 				m_robotModel.setState(m_state_init);
-// 			over = 1;
-// 		}
-// 		else
-// 		{
-// 			m_robotModel.setState(m_state_relaxed);
-// 			over = 2;
-// 		}
-// 	}
-// 	else
-// 		m_fadeTorqueState += diff;
+		if(m_fadeTorqueState > 0.5)
+		{
+			if(m_robotModel.state() == m_state_relaxed)
+				m_robotModel.setState(m_state_init);
+			over = 1;
+		}
+		else
+		{
+			m_robotModel.setState(m_state_relaxed);
+			over = 2;
+		}
+	}
+	else
+		m_fadeTorqueState += diff;
 
-// 	// Don't fade the goal torque twice
-// 	if((diff != 0.0) || m_newFadeTorqueGoal)
-// 		m_hw->setStiffness(m_fadeTorqueState);
+	// Don't fade the goal torque twice
+	if((diff != 0.0) || m_newFadeTorqueGoal)
+		m_hw->setStiffness(m_fadeTorqueState);
 
-// 	FadeTorqueFeedbackPtr fb = boost::make_shared<FadeTorqueFeedback>();
-// 	fb->current_torque = m_fadeTorqueState;
-// 	m_fadeTorqueServer.publishFeedback(fb);
+	FadeTorqueFeedbackPtr fb = boost::make_shared<FadeTorqueFeedback>();
+	fb->current_torque = m_fadeTorqueState;
+	m_fadeTorqueServer.publishFeedback(fb);
 
-// 	if(over == 1)
-// 	{
-// 		ROS_INFO("Fade in finished => Stiffness now %.3f", m_fadeTorqueState);
-// 		plotEvent("End fade in");
-// 	}
-// 	if(over == 2)
-// 	{
-// 		ROS_INFO("Fade out finished => Stiffness now %.3f", m_fadeTorqueState);
-// 		plotEvent("End fade out");
-// 	}
-// 	m_newFadeTorqueGoal = false;
-// }
+	if(over == 1)
+	{
+		ROS_INFO("Fade in finished => Stiffness now %.3f", m_fadeTorqueState);
+		plotEvent("End fade in");
+	}
+	if(over == 2)
+	{
+		ROS_INFO("Fade out finished => Stiffness now %.3f", m_fadeTorqueState);
+		plotEvent("End fade out");
+	}
+	m_newFadeTorqueGoal = false;
+}
 
 /**
  * This takes care of all real-time specific stuff that needs to be done
@@ -429,52 +425,52 @@ void RobotControl::step()
 	// Back up the current joint commands in robot model
 	m_robotModel.newCommands();
 
-	// // Handle torque fade requests
-	// if(m_robotModel.isRelaxed())
-	// {
-	// 	ROS_WARN_THROTTLE(3.0, "Robot is artificially relaxed by robot model request");
-	// 	m_hw->setStiffness(0.0);
-	// 	m_fadeTorqueState = 0.0;
-	// 	if(m_fadeTorqueServer.isActive())
-	// 	{
-	// 		ROS_INFO("Aborted fade due to robot model relax request");
-	// 		if(m_fadeTorqueGoal->torque <= 0.5)
-	// 			m_robotModel.setState(m_state_relaxed);
-	// 		m_fadeTorqueServer.setAborted();
-	// 	}
-	// }
-	// if(m_fadeTorqueServer.isActive()) // If we have a fade torque goal...
-	// 	handleFadeTorque();
-	// else if(m_fadeTorqueServer.isNewGoalAvailable())
-	// {
-	// 	m_fadeTorqueGoal = m_fadeTorqueServer.acceptNewGoal();
-	// 	m_newFadeTorqueGoal = true;
-	// 	ROS_INFO("Fade started with goal %.3f:", m_fadeTorqueGoal->torque);
-	// 	if(m_fadeTorqueGoal->torque > m_fadeTorqueState)
-	// 		plotEvent("Fade in");
-	// 	else if(m_fadeTorqueGoal->torque < m_fadeTorqueState)
-	// 		plotEvent("Fade out");
-	// }
+	// Handle torque fade requests
+	if(m_robotModel.isRelaxed())
+	{
+		ROS_WARN_THROTTLE(3.0, "Robot is artificially relaxed by robot model request");
+		m_hw->setStiffness(0.0);
+		m_fadeTorqueState = 0.0;
+		if(m_fadeTorqueServer.isActive())
+		{
+			ROS_INFO("Aborted fade due to robot model relax request");
+			if(m_fadeTorqueGoal->torque <= 0.5)
+				m_robotModel.setState(m_state_relaxed);
+			m_fadeTorqueServer.setAborted();
+		}
+	}
+	if(m_fadeTorqueServer.isActive()) // If we have a fade torque goal...
+		handleFadeTorque();
+	else if(m_fadeTorqueServer.isNewGoalAvailable())
+	{
+		m_fadeTorqueGoal = m_fadeTorqueServer.acceptNewGoal();
+		m_newFadeTorqueGoal = true;
+		ROS_INFO("Fade started with goal %.3f:", m_fadeTorqueGoal->torque);
+		if(m_fadeTorqueGoal->torque > m_fadeTorqueState)
+			plotEvent("Fade in");
+		else if(m_fadeTorqueGoal->torque < m_fadeTorqueState)
+			plotEvent("Fade out");
+	}
 
 	// Start the joint command update phase
 	for(size_t i = 0; i < m_robotModel.numJoints(); i++)
 		m_robotModel.joint(i)->cmd.startUpdatePhase();
 
-	 // Ask all loaded motion modules for their input
-	 if(!m_hw->emergencyStopActive())
-	 {
-	 	for(size_t i = 0; i < m_modules.size(); i++)
-	 	{
-	 		if(m_modules[i]->isTriggered())
-	 			m_modules[i]->step();
-	 	}
-	 }
-	 else
-	 {
-	 	ROS_WARN_THROTTLE(1.0, "Emergency stop active! All motion stopped.");
-	 	for(size_t i = 0; i < m_modules.size(); ++i)
-	 		m_modules[i]->handleEmergencyStop();
-	 }
+	// Ask all loaded motion modules for their input
+	if(!m_hw->emergencyStopActive())
+	{
+		for(size_t i = 0; i < m_modules.size(); i++)
+		{
+			if(m_modules[i]->isTriggered())
+				m_modules[i]->step();
+		}
+	}
+	else
+	{
+		ROS_WARN_THROTTLE(1.0, "Emergency stop active! All motion stopped.");
+		for(size_t i = 0; i < m_modules.size(); ++i)
+			m_modules[i]->handleEmergencyStop();
+	}
 
 	// Stop the joint command update phase
 	for(size_t i = 0; i < m_robotModel.numJoints(); i++)
@@ -522,7 +518,7 @@ void RobotControl::step()
 		}
 
 		for(size_t i = 0; i < m_modules.size(); ++i)
-		 	m_modules[i]->publishTransforms();  // Gait only send odom dan floor transform
+			m_modules[i]->publishTransforms();
 
 		// Clear the visualization markers list
 		m_markers.clear();
@@ -743,8 +739,8 @@ int main(int argc, char** argv)
 		ROS_ERROR("I'm going to run without realtime priority!");
 	}
 
-	// // Set I/O priority to real-time
-	// ioprio_set(IOPRIO_WHO_PROCESS, getpid(), (IOPRIO_CLASS_RT << 13) | 0);
+	// Set I/O priority to real-time
+	ioprio_set(IOPRIO_WHO_PROCESS, getpid(), (IOPRIO_CLASS_RT << 13) | 0);
 
 	// Configure the motion timer for the required nominal loop rate
 	MotionTimer timer(duration());

@@ -28,9 +28,9 @@
 namespace robotcontrol
 {
 
-// class MotionModule;
+class MotionModule;
 class HardwareInterface;
-	typedef boost::shared_ptr<MotionModule> MotionModulePtr;
+typedef boost::shared_ptr<MotionModule> MotionModulePtr;
 
 /**
  * @ingroup nodes
@@ -121,17 +121,17 @@ private:
 	ros::Publisher m_pub_diag;
 	ros::Timer m_diagnosticsTimer;
 
-	// // Fading
-	// actionlib::SimpleActionServer<FadeTorqueAction> m_fadeTorqueServer;
-	// FadeTorqueGoalConstPtr m_fadeTorqueGoal;
-	// float m_fadeTorqueState;
-	// bool m_newFadeTorqueGoal;
+	// Fading
+	actionlib::SimpleActionServer<FadeTorqueAction> m_fadeTorqueServer;
+	FadeTorqueGoalConstPtr m_fadeTorqueGoal;
+	float m_fadeTorqueState;
+	bool m_newFadeTorqueGoal;
 
 	// Parameters
 	config_server::Parameter<float> m_velLimit;
 	config_server::Parameter<float> m_accLimit;
 	config_server::Parameter<bool> m_publishCommand;
-	// config_server::Parameter<float> m_fadeInMaxDelta;
+	config_server::Parameter<float> m_fadeInMaxDelta;
 
 	bool m_shouldShutdown;
 
