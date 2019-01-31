@@ -20,8 +20,8 @@ def updateUsb2dyna():
     toSavetty=""
     for line in result.split(os.linesep):
         serial = getCol("ATTRS{serial}=", line)
-        if len(serial)==8 and "A" in serial:
-            toSavetty='SUBSYSTEMS=="usb", ENV{ID_SERIAL}=="FTDI_FT232R_USB_UART_'+serial+'", SYMLINK+="usb2dyna", MODE="0666", OWNER="nimbro"'
+        if len(serial)==8 and "F" in serial:
+            toSavetty='SUBSYSTEMS=="usb", ATTRS{idProduct}=="6014", ATTRS{idVendor}=="0403", SYMLINK+="usb2dyna", MODE="0666"'
             data.append(serial)
             print "usb2dynamixel Serial = "+serial
         

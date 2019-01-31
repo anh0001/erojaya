@@ -37,7 +37,7 @@
 using namespace cm730;
 
 // Constants
-const char* CM730::PATH = "/dev/cm730";
+const char* CM730::PATH = "/dev/usb2dyna";
 
 // Helper functions
 inline void getTimeLimit(struct timespec* out);

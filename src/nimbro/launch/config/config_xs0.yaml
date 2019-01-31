@@ -1017,7 +1017,7 @@ vision:
     diagonalAngleView: 133.3996
     flipHor: 0
     flipVer: 0
-    freezInput: 0
+    freezInput: 1
   circle:
     Coef:
       radiusMaxCoef: 1.5
@@ -1039,14 +1039,14 @@ vision:
     enable: 1
     hsv:
       active: 0
-      h0: 30
-      h1: 65
-      s0: 45
+      h0: 16
+      h1: 85
+      s0: 164
       s1: 255
-      v0: 25
+      v0: 30
       v1: 255
     morph:
-      dilate: 12
+      dilate: 10
       dilate2: 7
       erode: 1
       erode2: 9
@@ -1140,9 +1140,9 @@ vision:
       v0: 121
       v1: 255
     shape:
-      AngleToMerge: 35
+      AngleToMerge: 30
       DistanceToMerge: 0.5
-    showAllLine: 0
+    showAllLine: 1
     showCanny: 0
     showMask: 0
     showResult: 1
