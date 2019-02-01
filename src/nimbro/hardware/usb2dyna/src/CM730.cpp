@@ -189,8 +189,8 @@ int CM730::ping(int id, struct timespec* abstime)
 void CM730::suspend(double suspendTime)
 {
 	// Disable bytes from reaching the dynamixels for the duration of the suspend (disables PC --> DXL forwarding, i.e. TX to the DXL from the CM730)
-	if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
-		setDynamixelPower(DYNPOW_ON_NODXLTX);
+	//if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
+	//	setDynamixelPower(DYNPOW_ON_NODXLTX);
 
 	// Suspend the communications as required
 	if(suspendTime >= 0.0)
@@ -217,8 +217,8 @@ void CM730::unsuspend()
 	m_wasSuspended = false;
 	
 	// Allow bytes to reach the dynamixels again (enables PC --> DXL forwarding, i.e. TX to the DXL from the CM730)
-	if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
-		setDynamixelPower(DYNPOW_ON);
+	//if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
+	//	setDynamixelPower(DYNPOW_ON);
 }
 
 //
