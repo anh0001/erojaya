@@ -625,10 +625,11 @@ int CM730::updateTxBRPacket(const std::vector<int>& servos)
 	m_TxBulkRead[DP_INSTRUCTION]       = INST_BULK_READ;
 	m_TxBulkRead[DP_PARAMETER + num++] = (unsigned char) 0x00;
 
+	// Removed CM730 id as we are not using this in our robot.
 	// Add the CM730 as the first device in the bulk read (important!)
-	m_TxBulkRead[DP_PARAMETER + num++] = READ_CM730_LENGTH;  // Number of bytes to read
-	m_TxBulkRead[DP_PARAMETER + num++] = ID_CM730;           // ID of the CM730
-	m_TxBulkRead[DP_PARAMETER + num++] = READ_CM730_ADDRESS; // Start address of the region to read
+	//m_TxBulkRead[DP_PARAMETER + num++] = READ_CM730_LENGTH;  // Number of bytes to read
+	//m_TxBulkRead[DP_PARAMETER + num++] = ID_CM730;           // ID of the CM730
+	//m_TxBulkRead[DP_PARAMETER + num++] = READ_CM730_ADDRESS; // Start address of the region to read
 
 	// Add the servos to the bulk read packet
 	for(size_t i = 0; i < servos.size(); i++)
@@ -747,7 +748,7 @@ int CM730::syncWrite(int address, size_t numDataBytes, size_t numDevices, const 
 	// Send the write packet and return
 	return txPacket(txp);
 }
-
+/*
 // Set the dynamixel power state of the CM730
 int CM730::setDynamixelPower(int value)
 {
@@ -852,7 +853,7 @@ int CM730::sound(int musicIndex)
 	// Write the sound command to the CM730 and return whether it was successful
 	return writeData(CM730::ID_CM730, CM730::P_BUZZER_PLAY_LENGTH, data, numBytes);
 }
-
+*/
 //
 // Communications functions
 //
