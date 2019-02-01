@@ -2,7 +2,7 @@
 // Author: Grzegorz Ficht <ficht@ais.uni-bonn.de>
 
 // Includes
-#include "cm730/megapacket_thread.h"
+#include <usb2dyna/megapacket_thread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
