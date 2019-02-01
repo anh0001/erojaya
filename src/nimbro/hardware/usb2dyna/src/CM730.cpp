@@ -783,7 +783,9 @@ int CM730::setDynamixelPower(int value)
 int CM730::getDynamixelPower(CM730::DynPowState& state, struct timespec* abstime)
 {
 	// Read the appropriate register
-	int value = 0;/*
+	int value = 0;
+	state = DYNPOW_ON;
+/*
 	int ret = readByte(ID_CM730, P_DYNAMIXEL_POWER, &value, abstime);
 
 	// Return unknown if the read failed
