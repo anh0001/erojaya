@@ -5,7 +5,7 @@
 #define RULEVIEW_H
 
 #include <trajectory_editor/ruleslider.h>
-#include <motion_file/motionfile.h>
+#include <motion_player/motion_file/motionfile.h>
 #include <QWidget>
 
 namespace Ui

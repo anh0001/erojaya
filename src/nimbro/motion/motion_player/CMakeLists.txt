@@ -118,6 +118,13 @@ install(DIRECTORY include/motion_file/
    	PATTERN ".svn" EXCLUDE
 )
 
+## Mark cpp header files for installation
+install(DIRECTORY include/keyframe_player/
+	DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}/keyframe_player/
+   	FILES_MATCHING PATTERN "*.h"
+   	PATTERN ".svn" EXCLUDE
+)
+
 install(FILES plugin_robotcontrol.xml
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

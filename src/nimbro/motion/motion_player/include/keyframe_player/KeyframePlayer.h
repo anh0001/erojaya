@@ -1,6 +1,6 @@
 #ifndef KEYFRAMEPLAYER_H_
 #define KEYFRAMEPLAYER_H_
-#include "keyframe_player/Keyframe.h"
+#include <motion_player/keyframe_player/Keyframe.h>
 #include <QList>
 
 namespace kf_player

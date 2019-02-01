@@ -10,7 +10,7 @@
 #include <QLayout>
 
 #include <boost/shared_ptr.hpp>
-#include <motion_file/motionfile.h>
+#include <motion_player/motion_file/motionfile.h>
 
 #include <trajectory_editor/jointperspective.h>
 

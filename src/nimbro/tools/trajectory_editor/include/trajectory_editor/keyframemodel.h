@@ -7,7 +7,7 @@
 #include <QAbstractListModel>
 #include <QItemSelection>
 
-#include <motion_file/motionfile.h>
+#include <motion_player/motion_file/motionfile.h>
 
 #include <trajectory_editor/jointperspective.h>
 #include <trajectory_editor/robotdisplay.h>

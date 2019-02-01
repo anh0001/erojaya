@@ -11,7 +11,7 @@
 #include <ros/node_handle.h>
 #include <ros/service_client.h>
 
-#include <motion_file/motionfile.h>
+#include <motion_player/motion_file/motionfile.h>
 
 class MotionPlayerClient
 {

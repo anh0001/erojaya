@@ -189,8 +189,8 @@ int CM730::ping(int id, struct timespec* abstime)
 void CM730::suspend(double suspendTime)
 {
 	// Disable bytes from reaching the dynamixels for the duration of the suspend (disables PC --> DXL forwarding, i.e. TX to the DXL from the CM730)
-	//if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
-	//	setDynamixelPower(DYNPOW_ON_NODXLTX);
+	if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
+		setDynamixelPower(DYNPOW_ON_NODXLTX);
 
 	// Suspend the communications as required
 	if(suspendTime >= 0.0)
@@ -217,8 +217,8 @@ void CM730::unsuspend()
 	m_wasSuspended = false;
 	
 	// Allow bytes to reach the dynamixels again (enables PC --> DXL forwarding, i.e. TX to the DXL from the CM730)
-	//if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
-	//	setDynamixelPower(DYNPOW_ON);
+	if(m_lastSeenDynPow != DYNPOW_OFF) // Note: We need to be careful here that we don't enable dynamixel power if it's not supposed to be on!
+		setDynamixelPower(DYNPOW_ON);
 }
 
 //
@@ -612,7 +612,8 @@ int CM730::updateTxBRPacket(const std::vector<int>& servos)
 	// We want the packet: [0xFF] [0xFF] [0xFE] [3*N+3] [0x92] [0x00] [L1] [ID1] [Addr1] ... [LN] [IDN] [AddrN] [Checksum]
 
 	// Declare variables
-	int length = 3*(servos.size() + 1) + 3;
+	//int length = 3*(servos.size() + 1) + 3;
+	int length = 3*servos.size() + 3;
 	int num = 0;
 
 	// Error checking
@@ -625,7 +626,6 @@ int CM730::updateTxBRPacket(const std::vector<int>& servos)
 	m_TxBulkRead[DP_INSTRUCTION]       = INST_BULK_READ;
 	m_TxBulkRead[DP_PARAMETER + num++] = (unsigned char) 0x00;
 
-	// Removed CM730 id as we are not using this in our robot.
 	// Add the CM730 as the first device in the bulk read (important!)
 	//m_TxBulkRead[DP_PARAMETER + num++] = READ_CM730_LENGTH;  // Number of bytes to read
 	//m_TxBulkRead[DP_PARAMETER + num++] = ID_CM730;           // ID of the CM730
@@ -748,7 +748,7 @@ int CM730::syncWrite(int address, size_t numDataBytes, size_t numDevices, const 
 	// Send the write packet and return
 	return txPacket(txp);
 }
-/*
+
 // Set the dynamixel power state of the CM730
 int CM730::setDynamixelPower(int value)
 {
@@ -758,7 +758,7 @@ int CM730::setDynamixelPower(int value)
 		ROS_ERROR("Attempted to write bad value %d to the CM730 dynamixel power register!", value);
 		return RET_BAD_PARAM;
 	}
-
+/*
 	// Write the appropriate register
 	int ret = writeByte(ID_CM730, P_DYNAMIXEL_POWER, value);
 	if(ret != RET_SUCCESS)
@@ -773,7 +773,8 @@ int CM730::setDynamixelPower(int value)
 	else
 		m_PM.plotEvent("DXL Power Custom");
 	m_PM.publish();
-
+*/
+	int ret = RET_SUCCESS;
 	// Return value
 	return ret;
 }
@@ -782,7 +783,7 @@ int CM730::setDynamixelPower(int value)
 int CM730::getDynamixelPower(CM730::DynPowState& state, struct timespec* abstime)
 {
 	// Read the appropriate register
-	int value = 0;
+	int value = 0;/*
 	int ret = readByte(ID_CM730, P_DYNAMIXEL_POWER, &value, abstime);
 
 	// Return unknown if the read failed
@@ -797,7 +798,7 @@ int CM730::getDynamixelPower(CM730::DynPowState& state, struct timespec* abstime
 		state = (DynPowState) value;
 	else
 		state = DYNPOW_UNKNOWN;
-
+*/
 	// Return success
 	return RET_SUCCESS;
 }
@@ -807,10 +808,11 @@ int CM730::getButtonState(int& value, struct timespec* abstime)
 {
 	// Read the appropriate register
 	value = 0;
-	int ret = readByte(ID_CM730, P_BUTTON, &value, abstime);
+	/*int ret = readByte(ID_CM730, P_BUTTON, &value, abstime);
 	if(ret != RET_SUCCESS)
 		value = 0;
-	return ret;
+	return ret;*/
+	return RET_SUCCESS;
 }
 
 // Write to the CM730 that it should beep with a particular frequency and duration
@@ -853,7 +855,7 @@ int CM730::sound(int musicIndex)
 	// Write the sound command to the CM730 and return whether it was successful
 	return writeData(CM730::ID_CM730, CM730::P_BUZZER_PLAY_LENGTH, data, numBytes);
 }
-*/
+
 //
 // Communications functions
 //

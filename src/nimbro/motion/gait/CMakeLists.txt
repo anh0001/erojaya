@@ -55,14 +55,14 @@ target_link_libraries(gait
 ##########
 
 ## Build the gait utility pose tests
-catkin_add_gtest(test_gait_util_pose
-	test/test_gait_util_pose.cpp
-)
-target_link_libraries(test_gait_util_pose
-	gait_util
-	${catkin_LIBRARIES}
-	${GTEST_LIBRARIES}
-)
+#catkin_add_gtest(test_gait_util_pose
+#	test/test_gait_util_pose.cpp
+#)
+#target_link_libraries(test_gait_util_pose
+#	gait_util
+#	${catkin_LIBRARIES}
+#	${GTEST_LIBRARIES}
+#)
 
 #############
 ## Install ##

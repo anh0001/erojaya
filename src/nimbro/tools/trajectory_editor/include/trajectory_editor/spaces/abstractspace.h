@@ -10,7 +10,7 @@
 #include <gait/util/gait_abstract_pose.h>
 #include <boost/shared_ptr.hpp>
 
-#include <motion_file/poseconverter.h>
+#include <motion_player/motion_file/poseconverter.h>
 #include <trajectory_editor/spaces/rateangleview.h>
 #include <trajectory_editor/spaces/basicspace.h>
 

@@ -686,7 +686,7 @@ bool RobotInterface::initCM730()
 	}
 
 	// Enable power for the arms (there is a power MOSFET on the CM730 board that controls this)
-	//m_board->setDynamixelPower(CM730::DYNPOW_ON);
+	m_board->setDynamixelPower(CM730::DYNPOW_ON);
 
 	// Wait for the robot's servos to be relaxed
 	if(m_robotNameStr == "xs0")
@@ -810,8 +810,8 @@ void RobotInterface::waitForRelaxedServos()
 		{
 			ROS_WARN_THROTTLE(dT, "CM730 state is currently %d => Setting it to %d...", state, CM730::DYNPOW_ON);
 			numCM730Writes++;
-			//if(!m_board->setDynamixelPower(CM730::DYNPOW_ON))
-			//	numCM730WriteFail++;
+			if(!m_board->setDynamixelPower(CM730::DYNPOW_ON))
+				numCM730WriteFail++;
 			continue;
 		}
 
