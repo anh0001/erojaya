@@ -9,8 +9,8 @@
 #define CM730_H
 
 // Includes
-#include <cm730/read_thread.h>
-#include <cm730/dynamixel.h>
+#include <usb2dyna/read_thread.h>
+#include <usb2dyna/dynamixel.h>
 #include <config_server/parameter.h>
 #include <plot_msgs/plot_manager.h>
 #include <ros/time.h>
