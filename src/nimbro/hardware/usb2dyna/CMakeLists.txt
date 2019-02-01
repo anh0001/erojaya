@@ -40,13 +40,13 @@ target_link_libraries(usb2dyna
 )
 
 ## Build the usb2dyna test node
-add_executable(usb2dyna_test
-	src/cm730test.cpp
-)
-target_link_libraries(usb2dyna_test
-	usb2dyna
-	${catkin_LIBRARIES}
-)
+#add_executable(usb2dyna_test
+#	src/cm730test.cpp
+#)
+#target_link_libraries(usb2dyna_test
+#	usb2dyna
+#	${catkin_LIBRARIES}
+#)
 
 ## Build the CM740 megapacket test node
 #add_executable(cm740mp_test
