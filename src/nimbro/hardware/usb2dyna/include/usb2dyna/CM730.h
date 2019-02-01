@@ -129,13 +129,13 @@ namespace cm730
 		int syncWrite(int address, size_t numDataBytes, size_t numDevices, const uint8_t* data);
 
 		// Special registers
-		int setDynamixelPower(int value);
-		int getDynamixelPower(DynPowState& state, struct timespec* abstime = NULL);
-		int getButtonState(int& value, struct timespec* abstime = NULL);
-		int beep(float duration, int freq);
-		int sound(int musicIndex);
-		int stopBeep() { return stopSound(); }
-		int stopSound() { return writeByte(ID_CM730, P_BUZZER_PLAY_LENGTH, 0); }
+		//int setDynamixelPower(int value);
+		//int getDynamixelPower(DynPowState& state, struct timespec* abstime = NULL);
+		//int getButtonState(int& value, struct timespec* abstime = NULL);
+		//int beep(float duration, int freq);
+		//int sound(int musicIndex);
+		//int stopBeep() { return stopSound(); }
+		//int stopSound() { return writeByte(ID_CM730, P_BUZZER_PLAY_LENGTH, 0); }
 
 		// Get functions
 		inline bool isSuspended() { if(m_isSuspended && !m_unsuspendTime.isZero() && (ros::Time::now() >= m_unsuspendTime)) { unsuspend(); } return m_isSuspended; }
