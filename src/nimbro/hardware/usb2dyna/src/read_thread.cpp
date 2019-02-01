@@ -2,7 +2,7 @@
 // Author: Max Schwarz <max.schwarz@uni-bonn.de>
 
 // Includes
-#include "cm730/read_thread.h"
+#include <usb2dyna/read_thread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
