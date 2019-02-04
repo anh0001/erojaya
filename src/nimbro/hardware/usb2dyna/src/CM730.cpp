@@ -360,7 +360,7 @@ int CM730::readData(int id, int address, void* data, size_t size, struct timespe
 
 // Perform a read of the CM730 only
 int CM730::readCM730(BRBoard* cm730Data)
-{
+{/*
 	// Reset the last failed ID variable
 	m_lastFailedID = 0;
 	
@@ -429,7 +429,7 @@ int CM730::readCM730(BRBoard* cm730Data)
 	// Parse the received read response packet
 	if(!parseCM730Data(rxp, len, cm730Data))
 		return RET_RX_CORRUPT;
-
+*/
 	// Return success
 	return RET_SUCCESS;
 }

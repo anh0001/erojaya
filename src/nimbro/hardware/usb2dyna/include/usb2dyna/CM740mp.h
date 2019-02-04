@@ -10,7 +10,7 @@
 #define CM740MP_H
 
 // Includes
-#include <cm730/CM730.h>
+#include <usb2dyna/CM730.h>
 
 using namespace cm730;
 
