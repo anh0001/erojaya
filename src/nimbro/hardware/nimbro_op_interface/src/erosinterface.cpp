@@ -13,51 +13,42 @@ using namespace nimbro_op_interface;
 using namespace cm730;
 
 //
-// DummyInterface class
+// ErosInterface class
 //
 
 // Constants
 const std::string ErosInterface::CONFIG_PARAM_PATH = "/eros_interface/";
 
-// Default constructor
-ErosInterface::ErosInterface()
- : m_useModel(CONFIG_PARAM_PATH + "useModel", false)
- , m_addDelay(CONFIG_PARAM_PATH + "addDelay", true)
- , m_noiseEnable(CONFIG_PARAM_PATH + "noise/enabled", true)
- , m_noiseMagnitude(CONFIG_PARAM_PATH + "noise/magnitude", 0.0, 0.0002, 0.04, 0.002)
- , m_buttonPress0(CONFIG_PARAM_PATH + "button/pressButton0", false)
- , m_buttonPress1(CONFIG_PARAM_PATH + "button/pressButton1", false)
- , m_buttonPress2(CONFIG_PARAM_PATH + "button/pressButton2", false)
- , m_fakeTemperature(CONFIG_PARAM_PATH + "fakeTemperature", 10, 1, 70, 35)
- , m_fakeIMUGyroX(CONFIG_PARAM_PATH + "fakeIMU/gyroX", -2.0, 0.02, 2.0, 0.0)
- , m_fakeIMUGyroY(CONFIG_PARAM_PATH + "fakeIMU/gyroY", -2.0, 0.02, 2.0, 0.0)
- , m_fakeIMUGyroZ(CONFIG_PARAM_PATH + "fakeIMU/gyroZ", -2.0, 0.02, 2.0, 0.0)
- , m_fakeIMUAccX(CONFIG_PARAM_PATH + "fakeIMU/accX", -20.0, 0.2, 20.0, 0.0)
- , m_fakeIMUAccY(CONFIG_PARAM_PATH + "fakeIMU/accY", -20.0, 0.2, 20.0, 0.0)
- , m_fakeIMUAccZ(CONFIG_PARAM_PATH + "fakeIMU/accZ", -20.0, 0.2, 20.0, 9.81)
- , m_fakeIMUMagX(CONFIG_PARAM_PATH + "fakeIMU/magX", -2.0, 0.02, 2.0, 0.5)
- , m_fakeIMUMagY(CONFIG_PARAM_PATH + "fakeIMU/magY", -2.0, 0.02, 2.0, 0.0)
- , m_fakeIMUMagZ(CONFIG_PARAM_PATH + "fakeIMU/magZ", -2.0, 0.02, 2.0, 0.0)
- , m_fakeAttEnable(CONFIG_PARAM_PATH + "fakeAttitude/enabled", true)
- , m_fakeAttFusedX(CONFIG_PARAM_PATH + "fakeAttitude/fusedX", -M_PI_2, 0.01, M_PI_2, 0.0)
- , m_fakeAttFusedY(CONFIG_PARAM_PATH + "fakeAttitude/fusedY", -M_PI_2, 0.01, M_PI_2, 0.0)
- , m_fakeAttFusedZ(CONFIG_PARAM_PATH + "fakeAttitude/fusedZ", -M_PI, 0.02, M_PI, 0.0)
- , m_fakeAttFusedHemi(CONFIG_PARAM_PATH + "fakeAttitude/fusedHemi", true)
- , m_calledReadFeedback(false)
- , m_jointCmdBuf(5) // Note: This is the size of the joint position circular buffer, which determines the delay (number of cycles) introduced by the dummy
- , m_attFusedZ(0.0)
+// Initialise the usb2dynamixel
+bool RobotInterface::initCM730()
 {
-	// Reset the button press config parameters just in case
-	m_buttonPress0.set(false);
-	m_buttonPress1.set(false);
-	m_buttonPress2.set(false);
+	// Initialise the CM730
+	m_board.reset(new CM730(RESOURCE_PATH, CONFIG_PARAM_PATH));
+	m_board->updateTxBRPacket(m_cm730_queryset);
 
-	m_sub_heading = m_nh.subscribe("ai/heading", 1, &ErosInterface::handleHeadingData, this);
-}
+	// Stop here if connecting to the CM730 was unsuccessful
+	if(m_board->connect() < 0)
+	{
+		ROS_ERROR("Could not initialize CM730");
+		return false;
+	}
 
-// Destructor
-ErosInterface::~ErosInterface()
-{
+	// Wait for the robot's servos to be relaxed
+	if(m_robotNameStr == "xs0")
+	{
+		ROS_WARN("Robot is xs0 => Automatically disabling use of servos...");
+		m_useServos.set(false);
+	}
+	else
+	{
+		ROS_WARN("Only support xs0 robot...");
+	}
+
+	// Indicate that we have real hardware at our disposal
+	m_haveHardware = true;
+
+	// Return that the board was successfully initialised
+	return true;
 }
 
 void ErosInterface::handleHeadingData(const std_msgs::Float32::ConstPtr& msg)
@@ -73,128 +64,489 @@ void ErosInterface::handleHeadingData(const std_msgs::Float32::ConstPtr& msg)
 // Send joint targets function
 bool ErosInterface::sendJointTargets()
 {
-	// Pass on the work to the base implementation
-	return RobotInterface::sendJointTargets();
+	// Don't send anything if we aren't using the servos
+	if(!m_useServos())
+		return true;
+
+	// Communications are occurring PC --> CM730
+	m_hadTX = true;
+
+	// Allocate memory for the packet data and map an array of JointCmdSyncWriteData structs onto it
+	std::vector<uint8_t> params(m_model->numJoints() * sizeof(JointCmdSyncWriteData));
+	JointCmdSyncWriteData* paramData = (JointCmdSyncWriteData*) &params[0];
+
+	// Fill in the sync write buffer with the servo commands
+	size_t count = 0;
+	for(size_t i = 0; i < m_model->numJoints(); i++)
+	{
+		// Retrieve a pointer to the corresponding DXL joint
+		DXLJoint* joint = dxlJoint(i);
+
+		// Do not sync write to servos that are not enabled
+		if(!joint->enabled()) continue;
+
+		// Retrieve a pointer to the required JointCmdSyncWriteData in the array
+		JointCmdSyncWriteData* data = &paramData[count++];
+
+		// Slope-limit the servo effort to avoid large instantaneous steps
+		joint->realEffort = rc_utils::slopeLimited<double>(joint->realEffort, joint->cmd.effort, m_effortSlopeLimit());
+		if(joint->realEffort < 0.0) joint->realEffort = 0.0;
+		else if(joint->realEffort > 4.0) joint->realEffort = 4.0;
+
+		// Convert effort to a P gain of the servos
+		uint8_t realpValue = (uint8_t)(joint->realEffort * FULL_EFFORT);
+
+		// Give the command generator the information it needs
+		int pValue = realpValue;
+		if(pValue < 2) pValue = 2;
+		joint->commandGenerator->setPValue(pValue);
+		joint->commandGenerator->setVoltage(m_voltage); // Note: This could use m_statVoltage (check if >0.0 before using it), but as statistics are disabled this is a decent drop-in replacement
+
+		// If requested, use the servo model to generate the final position command
+		// We create a linear mix between the raw command (goal position) and
+		// the command generated by the servo model. The slope of the coefficient
+		// is limited by the m_rawStateSlopeLimit().
+		double rawGoal = ((!joint->cmd.raw && useModel()) ? 1 : 0);
+		joint->rawState = rc_utils::slopeLimited<double>(joint->rawState, rawGoal, m_rawStateSlopeLimit()); // joint->rawState is a dimensionless parameter used to interpolate between a given raw command and servo model based command
+		double modelCmd = joint->commandGenerator->servoCommandFor(joint->cmd.pos, joint->cmd.vel, joint->cmd.acc, joint->feedback.modelTorque);
+		double rawPosCmd = joint->cmd.pos;
+		rawPosCmd = joint->rawState * modelCmd + (1.0 - joint->rawState) * rawPosCmd;
+
+		// Save the generated command for plotting and logging
+		joint->cmd.rawPos = rawPosCmd;
+
+		// Negate the command if the joint's invert flag is set
+		if(joint->invert())
+			rawPosCmd = -rawPosCmd;
+
+		// Convert the command into a servo position in ticks
+		int goal = (int) (joint->commandGenerator->ticksPerRad()*rawPosCmd + joint->tickOffset() + 0.5);
+
+		// Goal position saturation
+		int minTicks = joint->commandGenerator->minTickValue();
+		int maxTicks = joint->commandGenerator->maxTickValue();
+		if(goal > maxTicks)
+			goal = maxTicks;
+		else if(goal < minTicks)
+			goal = minTicks;
+
+		// Write the calculated values into the required JointCmdSyncWriteData struct
+		data->id = joint->id();
+		data->p_gain = realpValue;
+		data->goal_position = (uint16_t) goal;
+	}
+
+	// Sync write the required joint targets
+	if(!syncWriteJointTargets(count, &params[0]))
+		return false;
+
+	// Return success
+	return true;
 }
 
 // Read joint states function
 bool ErosInterface::readJointStates()
 {
-	// Reset the flag whether readFeedbackData() was called
-	m_calledReadFeedback = false;
-	
-	// Pass on the work to the base implementation
-	bool ret = RobotInterface::readJointStates();
-	
-	// See whether the fake attitude should be written to the robot model
-	if(m_calledReadFeedback)
-	{
-		Eigen::Quaterniond att;
-		if (m_fakeAttEnable())
-			att = rot_conv::QuatFromFused(m_fakeAttFusedZ(), m_fakeAttFusedY(), m_fakeAttFusedX(), m_fakeAttFusedHemi());
-		else
-			att = rot_conv::QuatFromFused(m_attFusedZ, 0.0, 0.0, true);
+	// Our initial intentions are to do a full bulk read,
+	// not just query the CM730 for its registers
+	// (and thereby leave the electrical dynamixel bus void of packets)
+	bool onlyTryCM730 = false;
 
-		m_model->setRobotOrientation(att);
+	// Skip one step if requested (helps to establish stable communication again after RX_CORRUPT or RX_TIMEOUT)
+	if(m_skipStep)
+	{
+		m_skipStep = false;
+		onlyTryCM730 = true;
 	}
-	
-	// Return whether reading the joint states was successful
-	return ret;
-}
 
-// Read feedback data
-int ErosInterface::readFeedbackData(bool onlyTryCM730)
-{
-	// Indicate that this function was called
-	m_calledReadFeedback = true;
-	
-	//
-	// Update feedback from the CM730: m_boardData
-	//
-	
-	// Populate the header data
-	m_boardData.id = CM730::ID_CM730;
-	m_boardData.length = CM730::READ_CM730_LENGTH;
-	m_boardData.startAddress = CM730::READ_SERVO_ADDRESS;
-	
-	// Miscellaneous
-	m_boardData.power = 1; // The servos always have power
-	m_boardData.ledPanel = 0; // No LEDs are on
-	m_boardData.rgbled5 = 0; // RGBLED5 is off
-	m_boardData.rgbled6 = 0; // RGBLED6 is off
-	m_boardData.voltage = (unsigned char) ((15.0 / INT_TO_VOLTS) + 0.5); // The board voltage is always 15.0V
-	m_boardData.temp = m_fakeTemperature(); // The board temperature is customisable by a config variable
-	
-	// Button presses
-	unsigned char button = 0x00;
-	if(m_buttonPress0()) { button |= 0x01; m_buttonPress0.set(false); }
-	if(m_buttonPress1()) { button |= 0x02; m_buttonPress1.set(false); }
-	if(m_buttonPress2()) { button |= 0x04; m_buttonPress2.set(false); }
-	m_boardData.button = button;
-	
-	// IMU data
-	m_boardData.gyroX = m_fakeIMUGyroX() / GYRO_SCALE;
-	m_boardData.gyroY = m_fakeIMUGyroY() / GYRO_SCALE;
-	m_boardData.gyroZ = m_fakeIMUGyroZ() / GYRO_SCALE;
-	m_boardData.accX = m_fakeIMUAccX() / ACC_SCALE;
-	m_boardData.accY = m_fakeIMUAccY() / ACC_SCALE;
-	m_boardData.accZ = m_fakeIMUAccZ() / ACC_SCALE;
-	m_boardData.magX = m_fakeIMUMagX() / MAG_SCALE;
-	m_boardData.magY = m_fakeIMUMagY() / MAG_SCALE;
-	m_boardData.magZ = m_fakeIMUMagZ() / MAG_SCALE;
+	// Only communicate with the CM730 if we are not using the servos
+	if(!m_useServos())
+		onlyTryCM730 = true;
 
 	//
-	// Update feedback from the servos: m_servoData
+	// Bulk read from CM730
 	//
-	
-	// Only do servo feedback if we're supposed to contact the servos
-	if(!onlyTryCM730)
+
+	// Communications are occurring PC --> CM730
+	m_hadTX = true;
+
+	// Read feedback data from the CM730 and servos
+	int ret = readFeedbackData(onlyTryCM730); // Should update m_servoData and m_boardData (only the latter however if onlyTryCM730 is true)
+	ros::Time bulkReadTime = ros::Time::now();
+
+	// If the bulk read failed then see what the reason was and react
+	if(ret == CM730::RET_SUCCESS)
 	{
-		// Write the required joint feedback into m_servoData
-		const JointCmd& jointCmd = (m_addDelay() ? m_jointCmdBuf.front() : m_jointCmdBuf.back());
-		for(JointCmd::const_iterator it = jointCmd.begin(); it != jointCmd.end(); ++it)
+		// Reset the consecutive failure count
+		if(!onlyTryCM730)
+			m_consecFailCount = 0;
+
+		// Communications have occurred DXL --> CM730
+		m_hadRX = !onlyTryCM730;
+		m_commsOk = true;
+	}
+	else
+	{
+		// Update the joint state timestamps to the current time in case we're about to return early from this function before we get a chance to do so (resolves joint state plotting timestamp anomalies)
+		setJointFeedbackTime(bulkReadTime);
+
+		// Increment the consecutive failure count
+		m_consecFailCount++;
+
+		// Retrieve the last failed ID
+		int id = m_board->lastFailedID();    // Last failed ID is zero if failure was due to some reason other than servo comms
+		DXLJoint* joint = dxlJointForID(id); // Note: Protect uses of this with 'if(joint){...}'
+
+		// Process the servo failing
+		if(id != 0 && id != CM730::ID_CM730)
 		{
-			// Retrieve a reference to the required read data struct
-			uint8_t id = it->first;
-			if(id > m_servoData.size())
-				m_servoData.resize(id);
-			BRData& servoData = m_servoData.at(id - 1); // Minus 1 as id's are stored zero-based, which 1 being the first ID
-			
-			// Populate the header data
-			servoData.id = id;
-			servoData.length = CM730::READ_SERVO_LENGTH;
-			servoData.startAddress = CM730::READ_SERVO_ADDRESS;
-			
-			// Set the servo feedback position
-			int servoPos = it->second.goal_position;
-			if(m_noiseEnable())
+			// Retrieve the number of times that the last failed ID has now failed
+			int failCount = m_board->servoFailCount(id);
+			if(m_showServoFailures())
+				ROS_WARN("ID %d failed => %d times now", id, failCount);
+
+			// Increment the total servo fail count
+			m_totalFailCount++;
+			if(m_showServoFailures())
+				ROS_ERROR_THROTTLE(0.5, "Total servo failure count at %d", m_totalFailCount);
+
+			// Handle servo death cycles
+#if PROD_DEATH_CYCLES
+			if((bulkReadTime - m_timeLastFailCount).toSec() >= DEATH_CYCLE_TIME)
 			{
-				DXLJoint* joint = dxlJointForID(id);
-				float ticksPerRad = (joint ? joint->commandGenerator->ticksPerRev(): ServoCommandGenerator::DefaultTicksPerRev) / M_2PI;
-				servoPos += (int)(ticksPerRad * m_noiseMagnitude() * (drand48() - 0.5) + 0.5);
+				m_lastFailCount = m_totalFailCount - 1;
+				m_timeLastFailCount = bulkReadTime;
 			}
-			servoData.position = servoPos;
+			if((m_totalFailCount - m_lastFailCount >= DEATH_CYCLE_COUNT) || (m_consecFailCount % CONSEC_CYCLE_COUNT == 0))
+			{
+#if PROD_DEATH_CYCLES_PREV
+				int previd = 0;
+				std::vector<int>::iterator it = std::find(m_cm730_queryset.begin(), m_cm730_queryset.end(), id);
+				if(it != m_cm730_queryset.end() && it != m_cm730_queryset.begin()) // Our ID was found in the array and is not the first element...
+					previd = *(--it);
+				if(previd == CM730::ID_CM730 || previd < 1 || previd >= 0xFE)
+					previd = 0;
+				if((m_consecFailCount % CONSEC_CYCLE_COUNT) % 2 == 1 && previd > 0)
+				{
+					if(m_showServoFailures())
+						ROS_ERROR("Servo death cycle (ID %d) => Prodding preceding servo ID %d with a write!", id, previd);
+					m_board->writeByte(previd, DynamixelMX::P_ALARM_LED, 0x24); // Note: 0x24 is the default value of this register, and corresponds to the overheating and overload error bits (if these errors occur the servo LED lights up)
+				}
+				else
+#endif
+				{
+					if(m_showServoFailures())
+						ROS_ERROR("Servo death cycle (ID %d) => Prodding servo with a write!", id);
+					m_board->writeByte(id, DynamixelMX::P_ALARM_LED, 0x24); // Note: 0x24 is the default value of this register, and corresponds to the overheating and overload error bits (if these errors occur the servo LED lights up)
+				}
+			}
+#endif /* PROD_DEATH_CYCLES */
+
+			// Handle severe servo death cycles
+#if RESET_DEATH_CYCLES
+			if((bulkReadTime - m_timeLastFailCountSev).toSec() >= SEV_DEATH_CYCLE_TIME)
+			{
+				m_lastFailCountSev = m_totalFailCount - 1;
+				m_timeLastFailCountSev = bulkReadTime;
+			}
+			if((m_totalFailCount - m_lastFailCountSev >= SEV_DEATH_CYCLE_COUNT) || (m_consecFailCount % SEV_CONSEC_CYCLE_COUNT == 0))
+			{
+				m_commsSuspCount++;
+				if(!m_enableCommsSusp && (bulkReadTime - m_timeLastCommsSusp).toSec() >= COMMS_SUSPEND_RECOV_TIME)
+					m_enableCommsSusp = true;
+				if((bulkReadTime - m_timeLastSuspCheck).toSec() >= COMMS_SUSPEND_CHECK_TIME)
+				{
+					m_lastCommsSuspCount = m_commsSuspCount - 1;
+					m_timeLastSuspCheck = bulkReadTime;
+				}
+				if(m_commsSuspCount - m_lastCommsSuspCount >= COMMS_SUSPEND_CHECK_COUNT)
+				{
+					m_enableCommsSusp = false;
+				}
+				if(m_enableCommsSusp)
+				{
+					ROS_ERROR("Severe servo death cycle (ID %d) => Suspending all servo comms for %.0fms!", id, 1000.0*SEV_COMMS_SUSPEND_TIME);
+					if(m_showServoFailures())
+						ROS_ERROR("Total severe servo death cycle count at %d", m_commsSuspCount);
+					m_board->suspend(SEV_COMMS_SUSPEND_TIME);
+				}
+				else
+				{
+					ROS_ERROR_THROTTLE(2.0, "Severe servo death cycle (ID %d) => NOT suspending servo comms as this is happening too often!", id);
+					if(m_showServoFailures())
+						ROS_ERROR_THROTTLE(2.0, "Total severe servo death cycle count at %d", m_commsSuspCount);
+					m_commsOk = false;
+				}
+				m_timeLastCommsSusp = bulkReadTime;
+			}
+#endif /* RESET_DEATH_CYCLES */
+
+			// Handle non-responding servo repeat-offenders
+#if DYNAMIC_BRPACKET_REORDER
+			if(failCount % BR_REORDER_FAIL_COUNT == 0)
+			{
+				// Display a message to the user
+				if(m_showServoFailures())
+					ROS_WARN("Dynamic servo reordering triggered on ID %d => Prodding servo with a write!", id);
+
+				// Prod the servo that has been moved to the back of the list to avoid the subsequent servo in the bulk read packet (before re-ordering) failing in the next bulk read and never receiving a packet from the reordered servo because failure always happens before it's the reordered servo's turn
+				m_board->writeByte(id, DynamixelMX::P_ALARM_LED, 0x24); // Note: 0x24 is the default value of this register, and corresponds to the overheating and overload error bits (if these errors occur the servo LED lights up)
+
+				// Move the ID to the back of the query set
+				std::vector<int>::iterator it = std::find(m_cm730_queryset.begin(), m_cm730_queryset.end(), id);
+				if(it != m_cm730_queryset.end()) // Our ID was found in the array...
+				{
+					if(m_cm730_queryset.end() - it > 1) // Our ID isn't at the back of the array already...
+					{
+						m_cm730_queryset.erase(it);
+						m_cm730_queryset.push_back(id);
+						m_board->updateTxBRPacket(m_cm730_queryset);
+					}
+				}
+
+				// Display the new query set
+				if(m_showServoFailures())
+				{
+					std::stringstream ss("Query set:");
+					BOOST_FOREACH(int tmp, m_cm730_queryset) { ss << " " << tmp; }
+					ROS_INFO("%s", ss.str().c_str());
+				}
+			}
+#endif
+		}
+
+		// Perform handling specific to the type of bulk read failure
+		switch(ret)
+		{
+			case CM730::RET_RX_CORRUPT:
+			{
+				ROS_ERROR_THROTTLE(0.1, "Bulk read failed: RX_CORRUPT");
+				m_skipStep = true;
+				if(joint) joint->diag.checksum_errors++;
+				return false;
+				break;
+			}
+			case CM730::RET_RX_FAIL:
+				ROS_ERROR_THROTTLE(0.1, "Bulk read failed: RX_FAIL");
+				return false;
+				break;
+			case CM730::RET_TX_FAIL:
+				ROS_ERROR_THROTTLE(0.1, "Bulk read failed: TX_FAIL");
+				return false;
+				break;
+			case CM730::RET_RX_TIMEOUT:
+			{
+				m_skipStep = true;
+				if(id == 0)
+					ROS_ERROR_THROTTLE(0.1, "Bulk read timeout of unknown ID!");
+				else if(id == CM730::ID_CM730)
+				{
+					if(m_showServoFailures())
+						ROS_ERROR_THROTTLE(0.1, "Bulk read timeout of CM730!");
+				}
+				else
+				{
+					if(joint)
+						joint->diag.timeouts++;
+				}
+				break;
+			}
+			default:
+				ROS_ERROR_THROTTLE(0.1, "Bulk read failed: Unknown error (%d)", ret);
+				return false;
 		}
 	}
 
+	//
+	// Servo/joint feedback
+	//
+
+	// Write everything into the joint structs
+	if(onlyTryCM730)
+		setJointFeedbackTime(bulkReadTime);
+	else
+	{
+		// Retrieve the feedback from each joint
+		for(size_t i = 0; i < m_model->numJoints(); i++)
+		{
+			// Retrieve pointers to joint and bulk read data
+			DXLJoint* joint = dxlJoint(i);
+			int idx = joint->id() - 1;
+			const BRData& data = m_servoData[idx];
+
+			// Set the feedback time stamp
+			joint->feedback.stamp = bulkReadTime; // Note: This line replaces the need to call setJointFeedbackTime()
+
+			// Write either the real feedback or just the commanded values into the joint, depending on the enabled and readFeedback config parameters
+			if(joint->enabled() && joint->readFeedback())
+			{
+				// Convert the feedback to an angular position
+				if(data.position >= 0) // Valid position data is always non-negative in terms of ticks
+					joint->feedback.pos = (data.position - joint->tickOffset()) / joint->commandGenerator->ticksPerRad();
+				else
+					joint->feedback.pos = 0.0;
+
+				// Invert the joint position if required
+				if(joint->invert())
+					joint->feedback.pos = -joint->feedback.pos;
+
+				// Give the command generator the information it needs
+				int pValue = joint->realEffort * FULL_EFFORT;
+				if(pValue < 2) pValue = 2;
+				joint->commandGenerator->setPValue(pValue);
+				joint->commandGenerator->setVoltage(m_voltage); // Note: This could use m_statVoltage (check if >0.0 before using it), but as statistics are disabled this is a decent drop-in replacement
+
+				// Estimate the produced torque using the position displacement
+				joint->feedback.torque = joint->commandGenerator->servoTorqueFromCommand(joint->cmd.rawPos, joint->feedback.pos, joint->cmd.vel);
+			}
+			else
+			{
+				// Produce simulated feedback based on the commanded values
+				joint->feedback.pos = joint->cmd.pos;
+				joint->feedback.torque = joint->feedback.modelTorque;
+			}
+		}
+
+		// Process the joint feedback
+		processJointFeedback();
+	}
+
+	//
+	// Timing
+	//
+
+	// Retrieve the nominal time step
+	const double nominaldT = m_model->timerDuration();
+
+	// Calculate the time since sensor data was last processed
+	double dT;
+	bool firstSensorData = m_lastSensorTime.isZero();
+	if(firstSensorData)
+		dT = nominaldT;
+	else
+	{
+		dT = (bulkReadTime - m_lastSensorTime).toSec();
+		if(dT < MIN_SENSOR_DT * nominaldT)
+			dT = MIN_SENSOR_DT * nominaldT;
+		else if(dT > MAX_SENSOR_DT * nominaldT)
+			dT = MAX_SENSOR_DT * nominaldT;
+	}
+	m_lastSensorTime = bulkReadTime;
+
+	// Reset certain data if no data has been received from the CM730 for a while
+	bool firstCM730Data = m_lastCM730Time.isZero();
+	double cm730dT = (firstCM730Data ? nominaldT : (bulkReadTime - m_lastCM730Time).toSec());
+	if(!m_haveHardware || m_board->gotCM730Data()) m_lastCM730Time = bulkReadTime;
+	if(cm730dT > MAX_CM730_DT * nominaldT)
+	{
+		m_boardData.gyroX = 0.0;
+		m_boardData.gyroY = 0.0;
+		m_boardData.gyroZ = 0.0;
+	}
+
+	//
+	// Plotting
+	//
+
+	// Plot sensory and estimation data if requested
+	if(m_plotRobotInterfaceData())
+	{
+		m_PM.clear(bulkReadTime);
+		m_PM.plotScalar(m_angleEstimator.projPitch(), PM_ANGEST_PPITCH);
+		m_PM.plotScalar(m_angleEstimator.projRoll(), PM_ANGEST_PROLL);
+		m_PM.plotScalar(m_attitudeEstimator.fusedYaw(), PM_ATTEST_FYAW);
+		m_PM.plotScalar(m_attitudeEstimator.fusedPitch(), PM_ATTEST_FPITCH);
+		m_PM.plotScalar(m_attitudeEstimator.fusedRoll(), PM_ATTEST_FROLL);
+		m_PM.plotScalar((m_attitudeEstimator.fusedHemi() ? 1.0 : -1.0), PM_ATTEST_FHEMI);
+		double attEstBias[3] = {0.0};
+		m_attitudeEstimator.getGyroBias(attEstBias);
+		m_PM.plotScalar(attEstBias[0], PM_ATTEST_BIAS_X);
+		m_PM.plotScalar(attEstBias[1], PM_ATTEST_BIAS_Y);
+		m_PM.plotScalar(attEstBias[2], PM_ATTEST_BIAS_Z);
+		m_PM.plotScalar(m_attEstNoMag.fusedYaw(), PM_ATTEST_NOMAG_FYAW);
+		m_PM.plotScalar(m_attEstNoMag.fusedPitch(), PM_ATTEST_NOMAG_FPITCH);
+		m_PM.plotScalar(m_attEstNoMag.fusedRoll(), PM_ATTEST_NOMAG_FROLL);
+		m_PM.plotScalar((m_attEstNoMag.fusedHemi() ? 1.0 : -1.0), PM_ATTEST_NOMAG_FHEMI);
+		double attEstNoMagBias[3] = {0.0};
+		m_attEstNoMag.getGyroBias(attEstNoMagBias);
+		m_PM.plotScalar(attEstNoMagBias[0], PM_ATTEST_NOMAG_BIAS_X);
+		m_PM.plotScalar(attEstNoMagBias[1], PM_ATTEST_NOMAG_BIAS_Y);
+		m_PM.plotScalar(attEstNoMagBias[2], PM_ATTEST_NOMAG_BIAS_Z);
+		m_PM.plotScalar(m_attEstYaw.fusedYaw(), PM_ATTEST_YAW_FYAW);
+		m_PM.plotScalar(m_attEstYaw.fusedPitch(), PM_ATTEST_YAW_FPITCH);
+		m_PM.plotScalar(m_attEstYaw.fusedRoll(), PM_ATTEST_YAW_FROLL);
+		m_PM.plotScalar((m_attEstYaw.fusedHemi() ? 1.0 : -1.0), PM_ATTEST_YAW_FHEMI);
+		double attEstYawBias[3] = {0.0};
+		m_attEstYaw.getGyroBias(attEstYawBias);
+		m_PM.plotScalar(attEstYawBias[0], PM_ATTEST_YAW_BIAS_X);
+		m_PM.plotScalar(attEstYawBias[1], PM_ATTEST_YAW_BIAS_Y);
+		m_PM.plotScalar(attEstYawBias[2], PM_ATTEST_YAW_BIAS_Z);
+		m_PM.plotScalar(gyro.x(), PM_GYRO_X);
+		m_PM.plotScalar(gyro.y(), PM_GYRO_Y);
+		m_PM.plotScalar(gyro.z(), PM_GYRO_Z);
+		m_PM.plotScalar(gyro.norm(), PM_GYRO_N);
+		m_PM.plotScalar(m_gyroMean.x(), PM_GYROMEAN_X);
+		m_PM.plotScalar(m_gyroMean.y(), PM_GYROMEAN_Y);
+		m_PM.plotScalar(m_gyroMean.z(), PM_GYROMEAN_Z);
+		m_PM.plotScalar(m_gyroMean.norm(), PM_GYROMEAN_N);
+		m_PM.plotScalar(m_gyroMeanSmooth.x(), PM_GYROMEAN_SMOOTH_X);
+		m_PM.plotScalar(m_gyroMeanSmooth.y(), PM_GYROMEAN_SMOOTH_Y);
+		m_PM.plotScalar(m_gyroMeanSmooth.z(), PM_GYROMEAN_SMOOTH_Z);
+		m_PM.plotScalar(m_gyroMeanSmooth.norm(), PM_GYROMEAN_SMOOTH_N);
+		m_PM.plotScalar(gyroMeanOffset, PM_GYRO_MEAN_OFFSET);
+		m_PM.plotScalar(gyroStableTime, PM_GYRO_STABLE_TIME);
+		m_PM.plotScalar(gyroBiasTs, PM_GYRO_BIAS_TS);
+		m_PM.plotScalar(gyroBiasAlpha, PM_GYRO_BIAS_ALPHA);
+		m_PM.plotScalar(gyroScaleFactor, PM_GYRO_SCALE_FACTOR);
+		m_PM.plotScalar(rawAcc.x(), PM_ACC_XRAW);
+		m_PM.plotScalar(rawAcc.y(), PM_ACC_YRAW);
+		m_PM.plotScalar(rawAcc.z(), PM_ACC_ZRAW);
+		m_PM.plotScalar(rawAcc.norm(), PM_ACC_NRAW);
+		m_PM.plotScalar(acc.x(), PM_ACC_X);
+		m_PM.plotScalar(acc.y(), PM_ACC_Y);
+		m_PM.plotScalar(acc.z(), PM_ACC_Z);
+		m_PM.plotScalar(acc.norm(), PM_ACC_N);
+		m_PM.plotScalar(m_accMean.x(), PM_ACCMEAN_X);
+		m_PM.plotScalar(m_accMean.y(), PM_ACCMEAN_Y);
+		m_PM.plotScalar(m_accMean.z(), PM_ACCMEAN_Z);
+		m_PM.plotScalar(m_accMean.norm(), PM_ACCMEAN_N);
+		m_PM.plotScalar(magRaw.x(), PM_MAG_XRAW);
+		m_PM.plotScalar(magRaw.y(), PM_MAG_YRAW);
+		m_PM.plotScalar(magRaw.z(), PM_MAG_ZRAW);
+		m_PM.plotScalar(m_magSpikeFilterX.value(), PM_MAG_XSPIKE);
+		m_PM.plotScalar(m_magSpikeFilterY.value(), PM_MAG_YSPIKE);
+		m_PM.plotScalar(m_magSpikeFilterZ.value(), PM_MAG_ZSPIKE);
+		m_PM.plotScalar(m_magHardIronFilter.valueX(), PM_MAG_XIRON);
+		m_PM.plotScalar(m_magHardIronFilter.valueY(), PM_MAG_YIRON);
+		m_PM.plotScalar(m_magHardIronFilter.valueZ(), PM_MAG_ZIRON);
+		m_PM.plotScalar(mag.x(), PM_MAG_X);
+		m_PM.plotScalar(mag.y(), PM_MAG_Y);
+		m_PM.plotScalar(mag.z(), PM_MAG_Z);
+		m_PM.plotScalar(mag.norm(), PM_MAG_N);
+		m_PM.plotScalar(m_temperature * 0.01, PM_TEMPERATURE);
+		m_PM.plotScalar(m_voltage, PM_VOLTAGE);
+		m_PM.plotScalar(dT, PM_SENSOR_DT);
+		m_PM.publish();
+	}
+
 	// Return success
-	return CM730::RET_SUCCESS;
+	return true;
 }
 
 // Write the joint targets to the dummy robot
 bool ErosInterface::syncWriteJointTargets(size_t numDevices, const uint8_t* data)
 {
-	// Re-cast the data pointer to an array of numDevices JointCmdSyncWriteData structs
-	const JointCmdSyncWriteData* jointData = (const JointCmdSyncWriteData*) data;
-	
-	// Insert the commanded targets into the joint command circular buffer
-	JointCmd jointCmd;
-	for(size_t i = 0; i < numDevices; i++)
-		jointCmd[jointData[i].id] = jointData[i];
-	m_jointCmdBuf.push_back(jointCmd);
+	// Relaxed robots won't do anything. They are lazy.
+	if(m_relaxed) return true;
 
-	// Return that we have successfully written the joint targets
-	return true;
+	// Sync write the joint commands to the servos via the CM730
+	if(m_board->syncWrite(DynamixelMX::P_P_GAIN, sizeof(JointCmdSyncWriteData)-1, numDevices, data) != CM730::RET_SUCCESS) // Note: Size minus 1 as the id byte doesn't count as a write data byte
+	{
+		ROS_ERROR("SyncWrite of joint commands failed!");
+		return false;
+	}
+	else
+		return true;
 }
 
 PLUGINLIB_EXPORT_CLASS(nimbro_op_interface::ErosInterface, robotcontrol::HardwareInterface);
