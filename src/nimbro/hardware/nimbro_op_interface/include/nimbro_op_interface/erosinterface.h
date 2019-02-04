@@ -22,14 +22,6 @@ namespace nimbro_op_interface
 		ErosInterface() = default;
 		virtual ~ErosInterface() = default;
 
-		// Virtual function overrides
-		virtual bool sendJointTargets();
-		virtual bool readJointStates();
-
-	protected:
-		// Virtual functions to override attempts to connect to the CM730
-		virtual bool initCM730();
-		virtual bool syncWriteJointTargets(size_t numDevices, const uint8_t* data);
 	};
 }
 

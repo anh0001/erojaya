@@ -685,9 +685,6 @@ bool RobotInterface::initCM730()
 		return false;
 	}
 
-	// Enable power for the arms (there is a power MOSFET on the CM730 board that controls this)
-	m_board->setDynamixelPower(CM730::DYNPOW_ON);
-
 	// Wait for the robot's servos to be relaxed
 	if(m_robotNameStr == "xs0")
 	{
@@ -695,12 +692,14 @@ bool RobotInterface::initCM730()
 		m_useServos.set(false);
 	}
 	else
-		waitForRelaxedServos();
+	{
+		ROS_WARN("Only support xs0 robot...");
+	}
 
 	// Indicate that we have real hardware at our disposal
 	m_haveHardware = true;
 
-	// Return that the CM730 was successfully initialised
+	// Return that the board was successfully initialised
 	return true;
 }
 
@@ -938,7 +937,9 @@ void RobotInterface::setJointFeedbackTime(const ros::Time stamp)
  **/
 bool RobotInterface::readJointStates()
 {
-	// Our initial intentions are to do a full bulk read, not just query the CM730 for its registers (and thereby leave the electrical dynamixel bus void of packets)
+	// Our initial intentions are to do a full bulk read,
+	// not just query the CM730 for its registers
+	// (and thereby leave the electrical dynamixel bus void of packets)
 	bool onlyTryCM730 = false;
 
 	// Skip one step if requested (helps to establish stable communication again after RX_CORRUPT or RX_TIMEOUT)
@@ -946,19 +947,6 @@ bool RobotInterface::readJointStates()
 	{
 		m_skipStep = false;
 		onlyTryCM730 = true;
-	}
-
-	// Don't bother trying to read anything if the CM730 is suspended
-	if(m_haveHardware && m_board->isSuspended())
-	{
-		m_cm730Suspend = true;
-		onlyTryCM730 = true;
-	}
-	else
-	{
-		if(m_cm730Suspend)
-			ROS_ERROR("End of suspended servo comms!");
-		m_cm730Suspend = false;
 	}
 
 	// Only communicate with the CM730 if we are not using the servos
@@ -982,25 +970,10 @@ bool RobotInterface::readJointStates()
 		// Reset the consecutive failure count
 		if(!onlyTryCM730)
 			m_consecFailCount = 0;
-		
+
 		// Communications have occurred DXL --> CM730
 		m_hadRX = !onlyTryCM730;
 		m_commsOk = true;
-	}
-	else if(onlyTryCM730)
-	{
-		// Update the joint state timestamps to the current time in case we're about to return early from this function before we get a chance to do so (resolves joint state plotting timestamp anomalies)
-		setJointFeedbackTime(bulkReadTime);
-		
-		// Print error messages specific to the type of read failure
-		if(ret == CM730::RET_RX_CORRUPT) ROS_ERROR_THROTTLE(0.1, "CM730 read failed: RX_CORRUPT");
-		else if(ret == CM730::RET_RX_FAIL) ROS_ERROR_THROTTLE(0.1, "CM730 read failed: RX_FAIL");
-		else if(ret == CM730::RET_TX_FAIL) ROS_ERROR_THROTTLE(0.1, "CM730 read failed: TX_FAIL");
-		else if(ret == CM730::RET_RX_TIMEOUT) ROS_ERROR_THROTTLE(0.1, "Read timeout of CM730!");
-		else ROS_ERROR_THROTTLE(0.1, "CM730 read failed: Unknown error (%d)", ret);
-		
-		// Return as we have no data to process
-		return false;
 	}
 	else
 	{
@@ -1097,7 +1070,7 @@ bool RobotInterface::readJointStates()
 				m_timeLastCommsSusp = bulkReadTime;
 			}
 #endif /* RESET_DEATH_CYCLES */
-			
+
 			// Handle non-responding servo repeat-offenders
 #if DYNAMIC_BRPACKET_REORDER
 			if(failCount % BR_REORDER_FAIL_COUNT == 0)
@@ -1105,7 +1078,7 @@ bool RobotInterface::readJointStates()
 				// Display a message to the user
 				if(m_showServoFailures())
 					ROS_WARN("Dynamic servo reordering triggered on ID %d => Prodding servo with a write!", id);
-				
+
 				// Prod the servo that has been moved to the back of the list to avoid the subsequent servo in the bulk read packet (before re-ordering) failing in the next bulk read and never receiving a packet from the reordered servo because failure always happens before it's the reordered servo's turn
 				m_board->writeByte(id, DynamixelMX::P_ALARM_LED, 0x24); // Note: 0x24 is the default value of this register, and corresponds to the overheating and overload error bits (if these errors occur the servo LED lights up)
 
@@ -1231,7 +1204,7 @@ bool RobotInterface::readJointStates()
 	//
 	// Timing
 	//
-	
+
 	// Retrieve the nominal time step
 	const double nominaldT = m_model->timerDuration();
 
@@ -1259,469 +1232,6 @@ bool RobotInterface::readJointStates()
 		m_boardData.gyroX = 0.0;
 		m_boardData.gyroY = 0.0;
 		m_boardData.gyroZ = 0.0;
-	}
-
-	//
-	// Temperature
-	//
-
-	// Retrieve and filter the board temperature
-	double temperature = m_boardData.temp;
-	if(firstSensorData)
-		m_temperatureLowPass.setValue(temperature);
-	else
-		m_temperatureLowPass.put(temperature);
-	m_temperature = m_temperatureLowPass.value();
-	m_model->setTemperature(m_temperature);
-
-	//
-	// Voltage
-	//
-
-	// Retrieve and filter the board voltage
-	double voltage = INT_TO_VOLTS * m_boardData.voltage;
-	if(!m_initedVoltage)
-	{
-		m_voltageLowPass.setValue(voltage);
-		m_initedVoltage = (voltage != 0.0);
-	}
-	else
-		m_voltageLowPass.put(voltage);
-	m_voltage = m_voltageLowPass.value();
-	m_model->setVoltage(m_voltage);
-
-	//
-	// IMU orientation offsets
-	//
-
-	// Gyroscope/accelerometer orientation offset
-	Eigen::Quaterniond orientGyroAcc = rot_conv::QuatFromTilt(m_gyroAccFusedYaw(), m_gyroAccTiltAxisAngle(), m_gyroAccTiltAngle());
-	Eigen::Quaterniond orientMag = rot_conv::QuatFromTilt(m_magFusedYaw(), m_magTiltAxisAngle(), m_magTiltAngle() + (m_magFlip() ? M_PI : 0.0));
-
-	//
-	// Gyroscope sensor
-	//
-
-	// Decide on an appropriate scale factor for the gyro
-	double gyroScaleFactor = rc_utils::coerce(rc_utils::interpolateCoerced<double>(m_gyroTemperatureLow(), m_gyroTemperatureHigh(), m_gyroScaleFactorLT(), m_gyroScaleFactorHT(), m_temperature), 0.2, 5.0);
-	if(m_gyroCalibrating != 0)
-	{
-		if(m_gyroCalibScaleFactor <= 0.0)
-		{
-			m_gyroCalibScaleFactor = gyroScaleFactor; // Note: scaleFactor cannot be zero or negative so this logic works!
-			ROS_INFO("Keeping a constant gyro scale factor %.3f and disabling automatic gyro bias calibration...", m_gyroCalibScaleFactor);
-		}
-		else
-			gyroScaleFactor = m_gyroCalibScaleFactor;
-	}
-
-	// Retrieve and correct the gyroscope data to be in rad/s
-	double gyroX = m_boardData.gyroX * GYRO_SCALE * gyroScaleFactor;
-	double gyroY = m_boardData.gyroY * GYRO_SCALE * gyroScaleFactor;
-	double gyroZ = m_boardData.gyroZ * GYRO_SCALE * gyroScaleFactor;
-
-	// Correct for the mounting orientation of the gyroscope
-	Eigen::Vector3d gyro(gyroX, gyroY, gyroZ);
-	gyro = orientGyroAcc * gyro;
-
-	// Update the robot angular velocity in the robot model
-	m_model->setRobotAngularVelocity(gyro);
-
-	// Calculate the heavily smoothed mean of the gyro measurements
-	if(firstSensorData)
-	{
-		m_gyroLowPassMean.setValue(gyro);
-		m_gyroVeryLowPassMean.setValue(gyro);
-	}
-	else
-	{
-		m_gyroLowPassMean.put(gyro);
-		m_gyroVeryLowPassMean.put(gyro);
-	}
-	m_gyroMean = m_gyroLowPassMean.value();
-	m_gyroMeanSmooth = m_gyroVeryLowPassMean.value();
-
-	// See for how many cycles the gyro value has been within close range of the gyro mean (i.e. more or less stable)
-	double gyroMeanOffset = (gyro - m_gyroMean).norm();
-	if(gyroMeanOffset > m_gyroStabilityBound() || firstSensorData)
-		m_gyroStableCount = 0;
-	else
-		m_gyroStableCount++;
-	double gyroStableTime = m_gyroStableCount * nominaldT; // We intentionally calculate this time based on cycles and not a difference in ROS time (as the latter doesn't necessitate that there were any measurements inbetween)
-
-	// Set the gyro bias configs to the gyro mean if required
-	if(m_attEstGyroBiasSetFM())
-		setAttEstGyroBiasFromMean();
-	if(m_attEstGyroBiasSetFSM())
-		setAttEstGyroBiasFromSmoothMean();
-
-	//
-	// Accelerometer sensor
-	//
-
-	// Retrieve and scale the accelerometer data to be in m/s^2 (inertial acceleration convention, so nominal is (0,0,9.81))
-	double rawAccX = m_boardData.accX * ACC_SCALE;
-	double rawAccY = m_boardData.accY * ACC_SCALE;
-	double rawAccZ = m_boardData.accZ * ACC_SCALE;
-	Eigen::Vector3d rawAcc(rawAccX, rawAccY, rawAccZ);
-
-	// Calculate the heavily smoothed mean of the raw acc measurements (for gyro/acc orientation offset calibration only)
-	if(firstSensorData)
-		m_accLowPassMean.setValue(rawAcc);
-	else
-		m_accLowPassMean.put(rawAcc);
-	m_accMean = m_accLowPassMean.value();
-
-	// Correct for the mounting orientation of the accelerometer
-	rawAcc = orientGyroAcc * rawAcc;
-
-	// Filter the accelerometer data
-	m_fir_accX.put(rawAcc.x());
-	m_fir_accY.put(rawAcc.y());
-	m_fir_accZ.put(rawAcc.z());
-	Eigen::Vector3d acc(m_fir_accX.value(), m_fir_accY.value(), m_fir_accZ.value());
-
-	// Update the measured acceleration vector in the robot model
-	m_model->setAccelerationVector(acc);
-
-	//
-	// Magnetometer sensor
-	//
-
-	// Retrieve and scale the magnetometer data to be in gauss
-	double magRawX = m_boardData.magX * MAG_SCALE;
-	double magRawY = m_boardData.magY * MAG_SCALE;
-	double magRawZ = m_boardData.magZ * MAG_SCALE;
-
-	// Correct for the mounting orientation of the magnetometer
-	Eigen::Vector3d magRaw(magRawX, magRawY, magRawZ);
-	magRaw = orientMag * magRaw; // Rotates the magnetometer vector into the robot frame
-
-	// Initialise the spike filter values if this is the first time we are getting data
-	if(firstCM730Data)
-	{
-		m_magSpikeFilterX.setValue(magRaw.x());
-		m_magSpikeFilterY.setValue(magRaw.y());
-		m_magSpikeFilterZ.setValue(magRaw.z());
-	}
-
-	// Update the last known robot orientation inside the magnetometer filter
-	if(m_attEstYaw.QLActive())
-		m_magHardIronFilter.clearOrientation();
-	else
-	{
-		double quatTmp[4]; // Format is (w,x,y,z)
-		m_attEstYaw.getAttitude(quatTmp);
-		m_magHardIronFilter.setOrientation(Eigen::Quaterniond(quatTmp[0], quatTmp[1], quatTmp[2], quatTmp[3]));
-	}
-
-	// Pass spike-filtered magnetometer data through the magnetometer filter to account for hard iron effects
-	m_magHardIronFilter.update(m_magSpikeFilterX.put(magRaw.x()), m_magSpikeFilterY.put(magRaw.y()), m_magSpikeFilterZ.put(magRaw.z()));
-
-	// Apply an averaging FIR filter to the corrected magnetometer measurements
-	m_magFirFilterX.put(m_magHardIronFilter.valueX());
-	m_magFirFilterY.put(m_magHardIronFilter.valueY());
-	m_magFirFilterZ.put(m_magHardIronFilter.valueZ());
-	Eigen::Vector3d mag(m_magFirFilterX.value(), m_magFirFilterY.value(), m_magFirFilterZ.value());
-
-	// Zero out the magnetometer measurements if they should not be used
-	if(!m_useMagnetometer()) mag.setZero();
-
-	// Make available the corrected magnetometer data
-	m_model->setMagneticFieldVector(mag);
-
-	//
-	// Attitude estimation
-	//
-
-	// Auto-calibration of the gyro bias for attitude estimators without yaw feedback
-	double gyroBiasTs = 0.0;
-	double gyroBiasAlpha = 0.0;
-	double gyroStableTimeSinceFade = gyroStableTime - m_gyroCalibFadeTimeStart();
-	if(gyroStableTimeSinceFade >= 0.0 && m_gyroEnableAutoCalib() && m_gyroCalibrating == 0)
-	{
-		if(!m_gyroBiasAdjusting)
-		{
-			m_gyroVeryLowPassMean.setValue(m_gyroMean);
-			m_gyroMeanSmooth = m_gyroVeryLowPassMean.value();
-		}
-		m_gyroBiasAdjusting = true;
-		gyroBiasTs = rc_utils::interpolateCoerced<double>(0.0, m_gyroCalibFadeTimeDur(), m_gyroCalibTsSlow(), m_gyroCalibTsFast(), gyroStableTimeSinceFade);
-		gyroBiasAlpha = rc_utils::LowPassFilter::computeAlpha(gyroBiasTs, nominaldT);
-		double u = rc_utils::interpolateCoerced<double>(0.0, m_gyroLowPassMeanTsHigh(), 0.0, 1.0, gyroStableTimeSinceFade);
-		Eigen::Vector3d gyroBiasTarget = u*m_gyroMeanSmooth + (1.0 - u)*m_gyroMean;
-		double b[3] = {0.0};
-		m_attEstYaw.getGyroBias(b);
-		b[0] += gyroBiasAlpha*(gyroBiasTarget.x() - b[0]);
-		b[1] += gyroBiasAlpha*(gyroBiasTarget.y() - b[1]);
-		b[2] += gyroBiasAlpha*(gyroBiasTarget.z() - b[2]);
-		m_attEstYaw.setGyroBias(b);
-		m_attEstNoMag.getGyroBias(b);
-		b[0] += gyroBiasAlpha*(gyroBiasTarget.x() - b[0]);
-		b[1] += gyroBiasAlpha*(gyroBiasTarget.y() - b[1]);
-		b[2] += gyroBiasAlpha*(gyroBiasTarget.z() - b[2]);
-		m_attEstNoMag.setGyroBias(b);
-	}
-	else
-		m_gyroBiasAdjusting = false;
-
-	// Update the attitude estimator
-	m_attitudeEstimator.update(dT, gyro.x(), gyro.y(), gyro.z(), acc.x(), acc.y(), acc.z(), mag.x(), mag.y(), mag.z()); // We use the filtered magnetometer values here...
-	m_attEstNoMag.update(dT, gyro.x(), gyro.y(), gyro.z(), acc.x(), acc.y(), acc.z(), 0.0, 0.0, 0.0);                   // We use no magnetometer values at all here...
-	m_attEstYaw.update(dT, gyro.x(), gyro.y(), gyro.z(), acc.x(), acc.y(), acc.z(), 0.0, 0.0, 0.0);                     // We use no magnetometer values at all here...
-
-	// Retrieve the current robot orientation (attitude) estimate
-	double quatAtt[4], quatAttNoMag[4], quatAttYaw[4]; // Format is (w,x,y,z)
-	m_attitudeEstimator.getAttitude(quatAtt);
-	m_attEstNoMag.getAttitude(quatAttNoMag);
-	m_attEstYaw.getAttitude(quatAttYaw);
-
-	// Make available the robot orientation estimates
-	m_model->setRobotOrientation(Eigen::Quaterniond(quatAtt[0], quatAtt[1], quatAtt[2], quatAtt[3]), Eigen::Quaterniond(quatAttYaw[0], quatAttYaw[1], quatAttYaw[2], quatAttYaw[3])); // The choice of m_attEstYaw vs m_attEstNoMag here should be consistent with the same choice (above) in setting the quaternion orientation inside m_magHardIronFilter!
-
-	//
-	// Gyroscope calibration
-	//
-
-	// Update variables required for the gyroscope calibration
-	if(m_gyroCalibrating != 0)
-	{
-		double curYaw = m_attEstYaw.fusedYaw();
-		if(fabs(curYaw - m_gyroCalibCurYaw) >= M_PI)
-		{
-			if(curYaw > m_gyroCalibCurYaw)
-				m_gyroCalibLoopCount--;
-			else
-				m_gyroCalibLoopCount++;
-		}
-		m_gyroCalibCurYaw = curYaw;
-		m_gyroCalibUpdateCount++;
-	}
-
-	//
-	// Fused angle estimation
-	//
-
-	// Perform the prediction and correction cycles of the angle estimator
-	m_angleEstimator.predict(dT, gyro.x(), gyro.y());
-	m_angleEstimator.update(acc.x(), acc.y(), acc.z());
-
-	//
-	// Button presses
-	//
-
-	// Check which buttons have been pressed and publish appropriate messages
-	for(int i = 0; i < 3; i++)
-	{
-		// Determine the old and new button states
-		bool state = (m_boardData.button & (1 << i));
-		bool lastState = m_lastButtons & (1 << i);
-		bool justReleased = (!state && lastState);
-		bool ignorePress = false;
-		bool longPress = false;
-
-		// Detect long presses of button 0 to recover from a CM730 reset
-		if(i == 0 && m_haveHardware)
-		{
-			if(state)
-			{
-				double timeElapsed = (m_buttonTime0.isZero() ? -1.0 : (bulkReadTime - m_buttonTime0).toSec());
-				double timeData = ((m_buttonTime0.isZero() || m_lastCM730Time.isZero()) ? -1.0 : (m_lastCM730Time - m_buttonTime0).toSec());
-				double timeSinceRec = (m_buttonLastRec0.isZero() ? BUTTON0_RECOVER_PERIOD : (bulkReadTime - m_buttonLastRec0).toSec());
-				if(m_buttonState0 <= BPS_RELEASED || m_buttonState0 == BPS_LONG_PRESS || m_buttonState0 >= BPS_COUNT) // Note: BPS_LONG_PRESS is an invalid state for button 0, so it is treated like the other invalid or released states
-				{
-					m_buttonState0 = BPS_SHORT_PRESS;
-					m_buttonTime0 = bulkReadTime;
-				}
-				else if(m_buttonState0 == BPS_SHORT_PRESS && timeElapsed >= BUTTON0_RELAX_TIME && timeData >= BUTTON0_RELAX_TIME)
-				{
-					m_buttonState0 = BPS_DO_RELAX;
-					m_buttonTime0 = bulkReadTime;
-					longPress = true;
-				}
-				else if(m_buttonState0 == BPS_DO_RELAX && timeElapsed >= BUTTON0_UNRELAX_TIME && timeData >= BUTTON0_UNRELAX_TIME)
-				{
-					m_buttonState0 = BPS_DO_UNRELAX;
-					m_buttonTime0 = bulkReadTime;
-					if(!m_model->relaxedWasSet())
-					{
-						m_model->setRelaxed(false);
-						sendFadeTorqueGoal(1.0);
-					}
-				}
-				if(m_buttonState0 == BPS_DO_RELAX || m_buttonState0 == BPS_DO_UNRELAX)
-				{
-					if(timeSinceRec >= BUTTON0_RECOVER_PERIOD)
-					{
-						m_board->setDynamixelPower(CM730::DYNPOW_ON);
-						m_buttonLastRec0 = bulkReadTime;
-					}
-				}
-				else
-					rc_utils::zeroRosTime(m_buttonLastRec0);
-				if(m_buttonState0 == BPS_DO_RELAX)
-				{
-					m_model->setRelaxed(true);
-					if(m_model->state() != m_state_relaxed && m_model->state() != m_state_setting_pose)
-						m_model->setState(m_state_relaxed);
-				}
-			}
-			else if(justReleased)
-			{
-				if(m_buttonState0 == BPS_DO_RELAX || m_buttonState0 == BPS_DO_UNRELAX)
-				{
-					ignorePress = true;
-					if(!m_model->relaxedWasSet())
-						m_model->setRelaxed(false);
-				}
-				m_buttonState0 = BPS_RELEASED;
-				rc_utils::zeroRosTime(m_buttonTime0);
-				rc_utils::zeroRosTime(m_buttonLastRec0);
-			}
-			if(!longPress && (m_buttonState0 == BPS_SHORT_PRESS || m_buttonState0 == BPS_DO_RELAX || m_buttonState0 == BPS_DO_UNRELAX))
-				ignorePress = true;
-		}
-
-		// Detect long presses of button 1
-		if(i == 1 && m_haveHardware)
-		{
-			if(state)
-			{
-				double timeElapsed = (m_buttonTime1.isZero() ? -1.0 : (bulkReadTime - m_buttonTime1).toSec());
-				if(m_buttonState1 != BPS_SHORT_PRESS && m_buttonState1 != BPS_LONG_PRESS)
-				{
-					m_buttonState1 = BPS_SHORT_PRESS;
-					m_buttonTime1 = bulkReadTime;
-				}
-				else if(m_buttonState1 == BPS_SHORT_PRESS && timeElapsed >= BUTTON1_LONG_TIME)
-				{
-					m_buttonState1 = BPS_LONG_PRESS;
-					m_buttonTime1 = bulkReadTime;
-					longPress = true;
-				}
-			}
-			else if(justReleased)
-			{
-				if(m_buttonState1 == BPS_LONG_PRESS)
-					ignorePress = true;
-				m_buttonState1 = BPS_RELEASED;
-				rc_utils::zeroRosTime(m_buttonTime1);
-			}
-			if(!longPress && (m_buttonState1 == BPS_SHORT_PRESS || m_buttonState1 == BPS_LONG_PRESS))
-				ignorePress = true;
-		}
-
-		// Determine whether this button has been fake pressed by the config server
-		bool fakePressed0 = (i == 0 && m_buttonPress0());
-		bool fakePressed1 = (i == 1 && m_buttonPress1());
-		bool fakePressed2 = (i == 2 && m_buttonPress2());
-
-		// If the button was just released...
-		if((justReleased || longPress || fakePressed0 || fakePressed1 || fakePressed2) && !ignorePress)
-		{
-			// Publish on a ROS topic that the button was pressed
-			Button btn;
-			btn.button = i;
-			btn.time = bulkReadTime;
-			btn.longPress = longPress;
-			m_pub_buttons.publish(btn);
-
-			// We react to some buttons directly ourselves
-			handleButton(i, longPress);
-
-			// Reset button press config variable
-			if(fakePressed0) m_buttonPress0.set(false);
-			if(fakePressed1) m_buttonPress1.set(false);
-			if(fakePressed2) m_buttonPress2.set(false);
-		}
-	}
-
-	// Save the new button states
-	m_lastButtons = m_boardData.button;
-
-	//
-	// Plotting
-	//
-
-	// Plot sensory and estimation data if requested
-	if(m_plotRobotInterfaceData())
-	{
-		m_PM.clear(bulkReadTime);
-		m_PM.plotScalar(m_angleEstimator.projPitch(), PM_ANGEST_PPITCH);
-		m_PM.plotScalar(m_angleEstimator.projRoll(), PM_ANGEST_PROLL);
-		m_PM.plotScalar(m_attitudeEstimator.fusedYaw(), PM_ATTEST_FYAW);
-		m_PM.plotScalar(m_attitudeEstimator.fusedPitch(), PM_ATTEST_FPITCH);
-		m_PM.plotScalar(m_attitudeEstimator.fusedRoll(), PM_ATTEST_FROLL);
-		m_PM.plotScalar((m_attitudeEstimator.fusedHemi() ? 1.0 : -1.0), PM_ATTEST_FHEMI);
-		double attEstBias[3] = {0.0};
-		m_attitudeEstimator.getGyroBias(attEstBias);
-		m_PM.plotScalar(attEstBias[0], PM_ATTEST_BIAS_X);
-		m_PM.plotScalar(attEstBias[1], PM_ATTEST_BIAS_Y);
-		m_PM.plotScalar(attEstBias[2], PM_ATTEST_BIAS_Z);
-		m_PM.plotScalar(m_attEstNoMag.fusedYaw(), PM_ATTEST_NOMAG_FYAW);
-		m_PM.plotScalar(m_attEstNoMag.fusedPitch(), PM_ATTEST_NOMAG_FPITCH);
-		m_PM.plotScalar(m_attEstNoMag.fusedRoll(), PM_ATTEST_NOMAG_FROLL);
-		m_PM.plotScalar((m_attEstNoMag.fusedHemi() ? 1.0 : -1.0), PM_ATTEST_NOMAG_FHEMI);
-		double attEstNoMagBias[3] = {0.0};
-		m_attEstNoMag.getGyroBias(attEstNoMagBias);
-		m_PM.plotScalar(attEstNoMagBias[0], PM_ATTEST_NOMAG_BIAS_X);
-		m_PM.plotScalar(attEstNoMagBias[1], PM_ATTEST_NOMAG_BIAS_Y);
-		m_PM.plotScalar(attEstNoMagBias[2], PM_ATTEST_NOMAG_BIAS_Z);
-		m_PM.plotScalar(m_attEstYaw.fusedYaw(), PM_ATTEST_YAW_FYAW);
-		m_PM.plotScalar(m_attEstYaw.fusedPitch(), PM_ATTEST_YAW_FPITCH);
-		m_PM.plotScalar(m_attEstYaw.fusedRoll(), PM_ATTEST_YAW_FROLL);
-		m_PM.plotScalar((m_attEstYaw.fusedHemi() ? 1.0 : -1.0), PM_ATTEST_YAW_FHEMI);
-		double attEstYawBias[3] = {0.0};
-		m_attEstYaw.getGyroBias(attEstYawBias);
-		m_PM.plotScalar(attEstYawBias[0], PM_ATTEST_YAW_BIAS_X);
-		m_PM.plotScalar(attEstYawBias[1], PM_ATTEST_YAW_BIAS_Y);
-		m_PM.plotScalar(attEstYawBias[2], PM_ATTEST_YAW_BIAS_Z);
-		m_PM.plotScalar(gyro.x(), PM_GYRO_X);
-		m_PM.plotScalar(gyro.y(), PM_GYRO_Y);
-		m_PM.plotScalar(gyro.z(), PM_GYRO_Z);
-		m_PM.plotScalar(gyro.norm(), PM_GYRO_N);
-		m_PM.plotScalar(m_gyroMean.x(), PM_GYROMEAN_X);
-		m_PM.plotScalar(m_gyroMean.y(), PM_GYROMEAN_Y);
-		m_PM.plotScalar(m_gyroMean.z(), PM_GYROMEAN_Z);
-		m_PM.plotScalar(m_gyroMean.norm(), PM_GYROMEAN_N);
-		m_PM.plotScalar(m_gyroMeanSmooth.x(), PM_GYROMEAN_SMOOTH_X);
-		m_PM.plotScalar(m_gyroMeanSmooth.y(), PM_GYROMEAN_SMOOTH_Y);
-		m_PM.plotScalar(m_gyroMeanSmooth.z(), PM_GYROMEAN_SMOOTH_Z);
-		m_PM.plotScalar(m_gyroMeanSmooth.norm(), PM_GYROMEAN_SMOOTH_N);
-		m_PM.plotScalar(gyroMeanOffset, PM_GYRO_MEAN_OFFSET);
-		m_PM.plotScalar(gyroStableTime, PM_GYRO_STABLE_TIME);
-		m_PM.plotScalar(gyroBiasTs, PM_GYRO_BIAS_TS);
-		m_PM.plotScalar(gyroBiasAlpha, PM_GYRO_BIAS_ALPHA);
-		m_PM.plotScalar(gyroScaleFactor, PM_GYRO_SCALE_FACTOR);
-		m_PM.plotScalar(rawAcc.x(), PM_ACC_XRAW);
-		m_PM.plotScalar(rawAcc.y(), PM_ACC_YRAW);
-		m_PM.plotScalar(rawAcc.z(), PM_ACC_ZRAW);
-		m_PM.plotScalar(rawAcc.norm(), PM_ACC_NRAW);
-		m_PM.plotScalar(acc.x(), PM_ACC_X);
-		m_PM.plotScalar(acc.y(), PM_ACC_Y);
-		m_PM.plotScalar(acc.z(), PM_ACC_Z);
-		m_PM.plotScalar(acc.norm(), PM_ACC_N);
-		m_PM.plotScalar(m_accMean.x(), PM_ACCMEAN_X);
-		m_PM.plotScalar(m_accMean.y(), PM_ACCMEAN_Y);
-		m_PM.plotScalar(m_accMean.z(), PM_ACCMEAN_Z);
-		m_PM.plotScalar(m_accMean.norm(), PM_ACCMEAN_N);
-		m_PM.plotScalar(magRaw.x(), PM_MAG_XRAW);
-		m_PM.plotScalar(magRaw.y(), PM_MAG_YRAW);
-		m_PM.plotScalar(magRaw.z(), PM_MAG_ZRAW);
-		m_PM.plotScalar(m_magSpikeFilterX.value(), PM_MAG_XSPIKE);
-		m_PM.plotScalar(m_magSpikeFilterY.value(), PM_MAG_YSPIKE);
-		m_PM.plotScalar(m_magSpikeFilterZ.value(), PM_MAG_ZSPIKE);
-		m_PM.plotScalar(m_magHardIronFilter.valueX(), PM_MAG_XIRON);
-		m_PM.plotScalar(m_magHardIronFilter.valueY(), PM_MAG_YIRON);
-		m_PM.plotScalar(m_magHardIronFilter.valueZ(), PM_MAG_ZIRON);
-		m_PM.plotScalar(mag.x(), PM_MAG_X);
-		m_PM.plotScalar(mag.y(), PM_MAG_Y);
-		m_PM.plotScalar(mag.z(), PM_MAG_Z);
-		m_PM.plotScalar(mag.norm(), PM_MAG_N);
-		m_PM.plotScalar(m_temperature * 0.01, PM_TEMPERATURE);
-		m_PM.plotScalar(m_voltage, PM_VOLTAGE);
-		m_PM.plotScalar(dT, PM_SENSOR_DT);
-		m_PM.publish();
 	}
 
 	// Return success
@@ -1915,14 +1425,6 @@ void RobotInterface::processJointFeedback()
  **/
 bool RobotInterface::sendJointTargets()
 {
-	// Send the buzzer command if we have one
-	if(m_haveBuzzerData && m_haveHardware)
-	{
-		if(m_board->writeData(CM730::ID_CM730, CM730::P_BUZZER_PLAY_LENGTH, &m_buzzerData, sizeof(m_buzzerData)) != CM730::RET_SUCCESS)
-			ROS_ERROR_THROTTLE(0.4, "Write of buzzer command to CM730 failed!");
-		m_haveBuzzerData = false;
-	}
-
 	// Don't send anything if we aren't using the servos
 	if(!m_useServos())
 		return true;
@@ -1998,7 +1500,7 @@ bool RobotInterface::sendJointTargets()
 	// Sync write the required joint targets
 	if(!syncWriteJointTargets(count, &params[0]))
 		return false;
-	
+
 	// Return success
 	return true;
 }
@@ -2007,7 +1509,9 @@ bool RobotInterface::sendJointTargets()
 bool RobotInterface::syncWriteJointTargets(size_t numDevices, const uint8_t* data)
 {
 	// Relaxed robots won't do anything. They are lazy.
-	if(m_relaxed || m_board->isSuspended()) return true;
+	//if(m_relaxed || m_board->isSuspended()) return true;
+	// TODO: Check this... Removed isSuspended() function
+	if(m_relaxed) return true;
 
 	// Sync write the joint commands to the servos via the CM730
 	if(m_board->syncWrite(DynamixelMX::P_P_GAIN, sizeof(JointCmdSyncWriteData)-1, numDevices, data) != CM730::RET_SUCCESS) // Note: Size minus 1 as the id byte doesn't count as a write data byte
