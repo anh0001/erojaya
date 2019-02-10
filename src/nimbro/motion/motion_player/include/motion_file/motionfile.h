@@ -12,8 +12,8 @@
 #include <boost/make_shared.hpp>
 #include <ros/common.h>
 
-#include <motion_player/keyframe_player/Keyframe.h>
-#include <motion_player/motion_file/ruleapplier.h>
+#include <keyframe_player/Keyframe.h>
+#include <motion_file/ruleapplier.h>
 
 namespace motionfile
 {

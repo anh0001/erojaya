@@ -4,7 +4,7 @@
 #ifndef POSECONVERTER_H
 #define POSECONVERTER_H
 
-#include <motion_player/motion_file/motionfile.h>
+#include <motion_file/motionfile.h>
 
 #include <gait/util/gait_joint_pose.h>
 #include <gait/util/gait_abstract_pose.h>
