@@ -15,7 +15,7 @@
 
 #include <trajectory_editor/spaces/positionview.h>
 #include <trajectory_editor/spaces/basicspace.h>
-#include <motion_file/poseconverter.h>
+#include <motion_player/motion_file/poseconverter.h>
 
 class InverseSpace : public BasicSpace
 {

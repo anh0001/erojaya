@@ -19,7 +19,7 @@
 #include <OGRE/OgreViewport.h>
 #include <OGRE/OgreCamera.h>
 
-#include <motion_file/motionfile.h>
+#include <motion_player/motion_file/motionfile.h>
 #include <string>
 
 void RVizWidget::test(const visualization_msgs::Marker::ConstPtr& msg)
@@ -41,8 +41,8 @@ RVizWidget::RVizWidget(QWidget* parent) : RenderPanel(parent)
 
 void RVizWidget::initialize(ros::NodeHandle* nh)
 {
-	//m_model->initParam("/robot_description");
-	m_model->initFile(ros::package::getPath("nimbro_op_model")+ "/robots/urdf/igus_op.urdf");
+	m_model->initParam("/robot_description");
+	//m_model->initFile(ros::package::getPath("nimbro_op_model")+ "/robots/urdf/igus_op.urdf");
 	
 	m_robot = new RobotDisplay(m_model);
 	m_manager->addDisplay(m_robot, true);

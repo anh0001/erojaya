@@ -1,6 +1,6 @@
 perspective:
   name:  P1
-  model_path: /robots/urdf/igus_op.urdf
+  model_path: /robots/urdf/eros.urdf
   robot_name: P1
 
   joint_space:    1

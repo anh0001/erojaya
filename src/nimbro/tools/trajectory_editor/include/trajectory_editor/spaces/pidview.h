@@ -10,7 +10,7 @@
 #include <trajectory_editor/historykeeper.h>
 #include <trajectory_editor/spaces/basicsmallview.h>
 
-#include <motion_file/motionfile.h>
+#include <motion_player/motion_file/motionfile.h>
 
 class PIDView : public BasicSmallView
 {
