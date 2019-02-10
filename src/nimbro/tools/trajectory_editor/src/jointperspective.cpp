@@ -136,7 +136,6 @@ bool JointPerspective::correspondsTo(std::vector< std::string >& joint_list)
 
 bool JointPerspective::load(std::string path_to_file)
 {
-	//ROS_INFO("JointPerspective::Load %s", path_to_file.c_str());
 	m_joints.clear();
 	YAML::Node node;
 	
