@@ -462,55 +462,55 @@ nimbro_op_interface:
         readFeedback: 1
         type: MX-28
       left_ankle_pitch:
-        enabled: 0
+        enabled: 1
         id: 16
         invert: 1
         readFeedback: 1
         type: MX-64
       left_ankle_roll:
-        enabled: 0
+        enabled: 1
         id: 18
         invert: 1
         readFeedback: 1
         type: MX-64
       left_elbow_pitch:
-        enabled: 0
+        enabled: 1
         id: 6
         invert: 1
         readFeedback: 1
         type: MX-28
       left_hip_pitch:
-        enabled: 0
+        enabled: 1
         id: 12
         invert: 0
         readFeedback: 1
         type: MX-64
       left_hip_roll:
-        enabled: 0
+        enabled: 1
         id: 10
         invert: 0
         readFeedback: 1
         type: MX-64
       left_hip_yaw:
-        enabled: 0
+        enabled: 1
         id: 8
         invert: 1
         readFeedback: 1
         type: MX-28
       left_knee_pitch:
-        enabled: 0
+        enabled: 1
         id: 14
         invert: 0
         readFeedback: 1
         type: MX-64
       left_shoulder_pitch:
-        enabled: 0
+        enabled: 1
         id: 2
         invert: 0
         readFeedback: 1
         type: MX-28
       left_shoulder_roll:
-        enabled: 0
+        enabled: 1
         id: 4
         invert: 1
         readFeedback: 1
@@ -522,55 +522,55 @@ nimbro_op_interface:
         readFeedback: 1
         type: MX-28
       right_ankle_pitch:
-        enabled: 0
+        enabled: 1
         id: 15
         invert: 0
         readFeedback: 1
         type: MX-64
       right_ankle_roll:
-        enabled: 0
+        enabled: 1
         id: 17
         invert: 1
         readFeedback: 1
         type: MX-64
       right_elbow_pitch:
-        enabled: 0
+        enabled: 1
         id: 5
         invert: 0
         readFeedback: 1
         type: MX-28
       right_hip_pitch:
-        enabled: 0
+        enabled: 1
         id: 11
         invert: 1
         readFeedback: 1
         type: MX-64
       right_hip_roll:
-        enabled: 0
+        enabled: 1
         id: 9
         invert: 0
         readFeedback: 1
         type: MX-64
       right_hip_yaw:
-        enabled: 0
+        enabled: 1
         id: 7
         invert: 1
         readFeedback: 1
         type: MX-28
       right_knee_pitch:
-        enabled: 0
+        enabled: 1
         id: 13
         invert: 1
         readFeedback: 1
         type: MX-64
       right_shoulder_pitch:
-        enabled: 0
+        enabled: 1
         id: 1
         invert: 1
         readFeedback: 1
         type: MX-28
       right_shoulder_roll:
-        enabled: 0
+        enabled: 1
         id: 3
         invert: 1
         readFeedback: 1
@@ -579,23 +579,23 @@ nimbro_op_interface:
       head_pitch: 2048
       left_ankle_pitch: 2048
       left_ankle_roll: 2048
-      left_elbow_pitch: 2048
+      left_elbow_pitch: 3072
       left_hip_pitch: 2048
       left_hip_roll: 2048
-      left_hip_yaw: 2048
+      left_hip_yaw: 2368
       left_knee_pitch: 2048
       left_shoulder_pitch: 2048
-      left_shoulder_roll: 2048
+      left_shoulder_roll: 3072
       neck_yaw: 2048
       right_ankle_pitch: 2048
       right_ankle_roll: 2048
-      right_elbow_pitch: 2048
+      right_elbow_pitch: 1024
       right_hip_pitch: 2048
       right_hip_roll: 2048
-      right_hip_yaw: 2048
+      right_hip_yaw: 1856
       right_knee_pitch: 2048
       right_shoulder_pitch: 2048
-      right_shoulder_roll: 2048
+      right_shoulder_roll: 1024
   acc:
     lowPassMeanTs: 1
   attEstGyroCalib:
@@ -746,6 +746,7 @@ nimbro_op_interface:
   showServoFailures: 0
   temperature:
     lowPassTs: 10
+  useBulkReadShortcut: 1
   useMagnetometer: 0
   useModel: 1
   useServos: 1
@@ -1033,7 +1034,7 @@ vision:
     diagonalAngleView: 133.3996
     flipHor: 0
     flipVer: 0
-    freezInput: 1
+    freezInput: 0
   circle:
     Coef:
       radiusMaxCoef: 1.5
