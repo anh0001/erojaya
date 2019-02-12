@@ -41,8 +41,8 @@ RVizWidget::RVizWidget(QWidget* parent) : RenderPanel(parent)
 
 void RVizWidget::initialize(ros::NodeHandle* nh)
 {
-	m_model->initParam("/robot_description");
-	//m_model->initFile(ros::package::getPath("nimbro_op_model")+ "/robots/urdf/igus_op.urdf");
+	//m_model->initParam("/robot_description");
+	m_model->initFile(ros::package::getPath("nimbro_op_model")+ "/robots/urdf/eros.urdf");
 	
 	m_robot = new RobotDisplay(m_model);
 	m_manager->addDisplay(m_robot, true);
