@@ -1,6 +1,6 @@
 <launch>
 	<arg name="robot_name" default="xs0" />
-    <arg name="robot_type" default="P1" />
+    <arg name="robot_type" default="eros" />
     <arg name="robot_variant" default="eros_hull" />
 
     <param name="robot_name" value="$(arg robot_name)" type="str" />
