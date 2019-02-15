@@ -1,13 +1,32 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(walk_control)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp rqt_gui rqt_gui_cpp gait_msgs message_generation)
 
-find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
-include(${QT_USE_FILE})
+# Decide on a Qt version
+if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
+  set(USE_QT5 true)
+else()
+  set(USE_QT5 false)
+endif()
+set(USE_QT5 true)
+
+# Find Qt
+if(USE_QT5)
+  find_package(Qt5Widgets REQUIRED)
+  set(QT_LIBRARIES ${Qt5Widgets_LIBRARIES})
+else()
+  find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
+  include(${QT_USE_FILE})
+endif()
+
+#add_definitions(-DQT_NO_KEYWORDS)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 ## System dependencies are found with CMake's conventions
@@ -64,13 +83,14 @@ include_directories(include
   ${catkin_INCLUDE_DIRS}
 )
 
-qt4_wrap_ui(UIFILES
-  src/walkcontrol.ui
-)
+if(USE_QT5)
+  qt5_wrap_ui(UIFILES src/walkcontrol.ui)
+  qt5_wrap_cpp(MOCFILES include/walkcontrol.h)
+else()
+  qt4_wrap_ui(UIFILES src/walkcontrol.ui)
+  qt4_wrap_cpp(MOCFILES include/walkcontrol.h)
+endif()
 
-qt4_wrap_cpp(MOCFILES
-  include/walkcontrol.h
-)
 ## Declare a cpp library
 add_library(walkcontrol
   ${UIFILES}
