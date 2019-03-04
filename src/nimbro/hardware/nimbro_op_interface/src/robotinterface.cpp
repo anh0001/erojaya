@@ -1511,8 +1511,13 @@ bool RobotInterface::syncWriteJointTargets(size_t numDevices, const uint8_t* dat
 	// Relaxed robots won't do anything. They are lazy.
 	//if(m_relaxed || m_board->isSuspended()) return true;
 	// TODO: Check this... Removed isSuspended() function
-	if(m_relaxed) return true;
-
+	if(m_relaxed)
+	{
+		//ROS_INFO_THROTTLE(0.5, "syncWriteJointTargets m_relaxed");
+		return true;
+	}
+	
+	//ROS_INFO_THROTTLE(0.5, "syncWriteJointTargets after m_relaxed");
 	// Sync write the joint commands to the servos via the CM730
 	if(m_board->syncWrite(DynamixelMX::P_P_GAIN, sizeof(JointCmdSyncWriteData)-1, numDevices, data) != CM730::RET_SUCCESS) // Note: Size minus 1 as the id byte doesn't count as a write data byte
 	{
