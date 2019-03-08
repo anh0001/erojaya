@@ -1234,6 +1234,22 @@ bool RobotInterface::readJointStates()
 		m_boardData.gyroZ = 0.0;
 	}
 
+	//
+	// Voltage
+	//
+
+	// Retrieve and filter the board voltage
+	double voltage = INT_TO_VOLTS * m_boardData.voltage;
+	if(!m_initedVoltage)
+	{
+		m_voltageLowPass.setValue(voltage);
+		m_initedVoltage = (voltage != 0.0);
+	}
+	else
+		m_voltageLowPass.put(voltage);
+	m_voltage = m_voltageLowPass.value();
+	m_model->setVoltage(m_voltage);
+
 	// Return success
 	return true;
 }
@@ -1241,11 +1257,36 @@ bool RobotInterface::readJointStates()
 // Read feedback data from the CM730 and servos (usually involves a bulk read, but if specified, only the CM730 should queried)
 int RobotInterface::readFeedbackData(bool onlyTryCM730)
 {
+	//TODO: Check this! CM730 parameters are set fix.
+
+	int ret;
 	// Perform the required read
 	if(onlyTryCM730)
-		return m_board->readCM730(&m_boardData);
+		ret = m_board->readCM730(&m_boardData);
 	else
-		return m_board->bulkRead(&m_servoData, &m_boardData);
+		ret = m_board->bulkRead(&m_servoData, &m_boardData);
+	
+	// Populate the header data
+	m_boardData.id = CM730::ID_CM730;
+	m_boardData.length = CM730::READ_CM730_LENGTH;
+	m_boardData.startAddress = CM730::READ_SERVO_ADDRESS;
+	
+	// Miscellaneous
+	m_boardData.power = 1; // The servos always have power
+	m_boardData.ledPanel = 0; // No LEDs are on
+	m_boardData.rgbled5 = 0; // RGBLED5 is off
+	m_boardData.rgbled6 = 0; // RGBLED6 is off
+	m_boardData.voltage = (unsigned char) ((15.0 / INT_TO_VOLTS) + 0.5); // The board voltage is always 15.0V
+	//m_boardData.temp = m_fakeTemperature(); // The board temperature is customisable by a config variable
+	
+	//// Button presses
+	//unsigned char button = 0x00;
+	//if(m_buttonPress0()) { button |= 0x01; m_buttonPress0.set(false); }
+	//if(m_buttonPress1()) { button |= 0x02; m_buttonPress1.set(false); }
+	//if(m_buttonPress2()) { button |= 0x04; m_buttonPress2.set(false); }
+	//m_boardData.button = button;
+
+	return ret;
 }
 
 /**
