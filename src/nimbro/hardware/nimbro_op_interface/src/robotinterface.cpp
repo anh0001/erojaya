@@ -1235,6 +1235,19 @@ bool RobotInterface::readJointStates()
 	}
 
 	//
+	// Temperature
+	//
+
+	// Retrieve and filter the board temperature
+	double temperature = m_boardData.temp;
+	if(firstSensorData)
+		m_temperatureLowPass.setValue(temperature);
+	else
+		m_temperatureLowPass.put(temperature);
+	m_temperature = m_temperatureLowPass.value();
+	m_model->setTemperature(m_temperature);
+
+	//
 	// Voltage
 	//
 
@@ -1250,6 +1263,139 @@ bool RobotInterface::readJointStates()
 	m_voltage = m_voltageLowPass.value();
 	m_model->setVoltage(m_voltage);
 
+	//
+	// Button presses
+	//
+
+	// Check which buttons have been pressed and publish appropriate messages
+	for(int i = 0; i < 3; i++)
+	{
+		// Determine the old and new button states
+		bool state = (m_boardData.button & (1 << i));
+		bool lastState = m_lastButtons & (1 << i);
+		bool justReleased = (!state && lastState);
+		bool ignorePress = false;
+		bool longPress = false;
+
+		// Detect long presses of button 0 to recover from a CM730 reset
+		if(i == 0 && m_haveHardware)
+		{
+			if(state)
+			{
+				double timeElapsed = (m_buttonTime0.isZero() ? -1.0 : (bulkReadTime - m_buttonTime0).toSec());
+				double timeData = ((m_buttonTime0.isZero() || m_lastCM730Time.isZero()) ? -1.0 : (m_lastCM730Time - m_buttonTime0).toSec());
+				double timeSinceRec = (m_buttonLastRec0.isZero() ? BUTTON0_RECOVER_PERIOD : (bulkReadTime - m_buttonLastRec0).toSec());
+				if(m_buttonState0 <= BPS_RELEASED || m_buttonState0 == BPS_LONG_PRESS || m_buttonState0 >= BPS_COUNT) // Note: BPS_LONG_PRESS is an invalid state for button 0, so it is treated like the other invalid or released states
+				{
+					m_buttonState0 = BPS_SHORT_PRESS;
+					m_buttonTime0 = bulkReadTime;
+				}
+				else if(m_buttonState0 == BPS_SHORT_PRESS && timeElapsed >= BUTTON0_RELAX_TIME && timeData >= BUTTON0_RELAX_TIME)
+				{
+					m_buttonState0 = BPS_DO_RELAX;
+					m_buttonTime0 = bulkReadTime;
+					longPress = true;
+				}
+				else if(m_buttonState0 == BPS_DO_RELAX && timeElapsed >= BUTTON0_UNRELAX_TIME && timeData >= BUTTON0_UNRELAX_TIME)
+				{
+					m_buttonState0 = BPS_DO_UNRELAX;
+					m_buttonTime0 = bulkReadTime;
+					if(!m_model->relaxedWasSet())
+					{
+						m_model->setRelaxed(false);
+						sendFadeTorqueGoal(1.0);
+					}
+				}
+				if(m_buttonState0 == BPS_DO_RELAX || m_buttonState0 == BPS_DO_UNRELAX)
+				{
+					if(timeSinceRec >= BUTTON0_RECOVER_PERIOD)
+					{
+						m_board->setDynamixelPower(CM730::DYNPOW_ON);
+						m_buttonLastRec0 = bulkReadTime;
+					}
+				}
+				else
+					rc_utils::zeroRosTime(m_buttonLastRec0);
+				if(m_buttonState0 == BPS_DO_RELAX)
+				{
+					m_model->setRelaxed(true);
+					if(m_model->state() != m_state_relaxed && m_model->state() != m_state_setting_pose)
+						m_model->setState(m_state_relaxed);
+				}
+			}
+			else if(justReleased)
+			{
+				if(m_buttonState0 == BPS_DO_RELAX || m_buttonState0 == BPS_DO_UNRELAX)
+				{
+					ignorePress = true;
+					if(!m_model->relaxedWasSet())
+						m_model->setRelaxed(false);
+				}
+				m_buttonState0 = BPS_RELEASED;
+				rc_utils::zeroRosTime(m_buttonTime0);
+				rc_utils::zeroRosTime(m_buttonLastRec0);
+			}
+			if(!longPress && (m_buttonState0 == BPS_SHORT_PRESS || m_buttonState0 == BPS_DO_RELAX || m_buttonState0 == BPS_DO_UNRELAX))
+				ignorePress = true;
+		}
+
+		// Detect long presses of button 1
+		if(i == 1 && m_haveHardware)
+		{
+			if(state)
+			{
+				double timeElapsed = (m_buttonTime1.isZero() ? -1.0 : (bulkReadTime - m_buttonTime1).toSec());
+				if(m_buttonState1 != BPS_SHORT_PRESS && m_buttonState1 != BPS_LONG_PRESS)
+				{
+					m_buttonState1 = BPS_SHORT_PRESS;
+					m_buttonTime1 = bulkReadTime;
+				}
+				else if(m_buttonState1 == BPS_SHORT_PRESS && timeElapsed >= BUTTON1_LONG_TIME)
+				{
+					m_buttonState1 = BPS_LONG_PRESS;
+					m_buttonTime1 = bulkReadTime;
+					longPress = true;
+				}
+			}
+			else if(justReleased)
+			{
+				if(m_buttonState1 == BPS_LONG_PRESS)
+					ignorePress = true;
+				m_buttonState1 = BPS_RELEASED;
+				rc_utils::zeroRosTime(m_buttonTime1);
+			}
+			if(!longPress && (m_buttonState1 == BPS_SHORT_PRESS || m_buttonState1 == BPS_LONG_PRESS))
+				ignorePress = true;
+		}
+
+		// Determine whether this button has been fake pressed by the config server
+		bool fakePressed0 = (i == 0 && m_buttonPress0());
+		bool fakePressed1 = (i == 1 && m_buttonPress1());
+		bool fakePressed2 = (i == 2 && m_buttonPress2());
+
+		// If the button was just released...
+		if((justReleased || longPress || fakePressed0 || fakePressed1 || fakePressed2) && !ignorePress)
+		{
+			// Publish on a ROS topic that the button was pressed
+			Button btn;
+			btn.button = i;
+			btn.time = bulkReadTime;
+			btn.longPress = longPress;
+			m_pub_buttons.publish(btn);
+
+			// We react to some buttons directly ourselves
+			handleButton(i, longPress);
+
+			// Reset button press config variable
+			if(fakePressed0) m_buttonPress0.set(false);
+			if(fakePressed1) m_buttonPress1.set(false);
+			if(fakePressed2) m_buttonPress2.set(false);
+		}
+	}
+
+	// Save the new button states
+	m_lastButtons = m_boardData.button;
+
 	// Return success
 	return true;
 }
@@ -1257,36 +1403,11 @@ bool RobotInterface::readJointStates()
 // Read feedback data from the CM730 and servos (usually involves a bulk read, but if specified, only the CM730 should queried)
 int RobotInterface::readFeedbackData(bool onlyTryCM730)
 {
-	//TODO: Check this! CM730 parameters are set fix.
-
-	int ret;
 	// Perform the required read
 	if(onlyTryCM730)
-		ret = m_board->readCM730(&m_boardData);
+		return m_board->readCM730(&m_boardData);
 	else
-		ret = m_board->bulkRead(&m_servoData, &m_boardData);
-	
-	// Populate the header data
-	m_boardData.id = CM730::ID_CM730;
-	m_boardData.length = CM730::READ_CM730_LENGTH;
-	m_boardData.startAddress = CM730::READ_SERVO_ADDRESS;
-	
-	// Miscellaneous
-	m_boardData.power = 1; // The servos always have power
-	m_boardData.ledPanel = 0; // No LEDs are on
-	m_boardData.rgbled5 = 0; // RGBLED5 is off
-	m_boardData.rgbled6 = 0; // RGBLED6 is off
-	m_boardData.voltage = (unsigned char) ((15.0 / INT_TO_VOLTS) + 0.5); // The board voltage is always 15.0V
-	//m_boardData.temp = m_fakeTemperature(); // The board temperature is customisable by a config variable
-	
-	//// Button presses
-	//unsigned char button = 0x00;
-	//if(m_buttonPress0()) { button |= 0x01; m_buttonPress0.set(false); }
-	//if(m_buttonPress1()) { button |= 0x02; m_buttonPress1.set(false); }
-	//if(m_buttonPress2()) { button |= 0x04; m_buttonPress2.set(false); }
-	//m_boardData.button = button;
-
-	return ret;
+		return m_board->bulkRead(&m_servoData, &m_boardData);
 }
 
 /**

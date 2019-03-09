@@ -19,9 +19,19 @@ namespace nimbro_op_interface
 	{
 	public:
 		// Constructor/destructor
-		ErosInterface() = default;
+		ErosInterface();
 		virtual ~ErosInterface() = default;
 
+	protected:
+		virtual int readFeedbackData(bool onlyTryCM730);
+
+	private:
+		// Config server parameters
+		config_server::Parameter<bool>  m_buttonPress0;
+		config_server::Parameter<bool>  m_buttonPress1;
+		config_server::Parameter<bool>  m_buttonPress2;
+		config_server::Parameter<bool>  m_buttonPress3;
+		config_server::Parameter<bool>  m_buttonPress4;
 	};
 }
 
