@@ -22,6 +22,9 @@ namespace nimbro_op_interface
 		ErosInterface();
 		virtual ~ErosInterface() = default;
 
+		// Constants
+		static const std::string CONFIG_PARAM_PATH;
+
 	protected:
 		virtual int readFeedbackData(bool onlyTryCM730);
 

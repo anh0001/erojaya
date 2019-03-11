@@ -12,6 +12,9 @@
 using namespace nimbro_op_interface;
 using namespace cm730;
 
+// Constants
+const std::string ErosInterface::CONFIG_PARAM_PATH = "/eros_interface/";
+
 //
 // ErosInterface class
 //
@@ -34,7 +37,7 @@ ErosInterface::ErosInterface()
 
 int ErosInterface::readFeedbackData(bool onlyTryCM730)
 {
-	int ret = RobotInterface::readFeedbackData();
+	int ret = RobotInterface::readFeedbackData(onlyTryCM730);
 
 	// Populate the header data
 	m_boardData.id = CM730::ID_CM730;
